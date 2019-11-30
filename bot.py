@@ -20,6 +20,12 @@ generalCollection = db['General']
 userCollection = db['UserStats']
 tagCollection = db['UserTags']
 
+def init():
+    generalCollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
+    tagCollection.update_many( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
+
+init()
+
 server = 'irc.chat.twitch.tv'
 port = 6667
 
@@ -411,10 +417,6 @@ def resetcd():
             userCollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
         sendMessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 
-def init():
-    generalCollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
-    tagCollection.update_many( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
-
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
     params = (('login', user),)
@@ -467,5 +469,3 @@ while True:
                 hardreset()
             if message == '+resetcd':
                 resetcd()
-            if message == '+init':
-                init()

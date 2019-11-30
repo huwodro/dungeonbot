@@ -411,9 +411,9 @@ def resetcd():
             userCollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
         sendMessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 
-def setup():
-    if tagCollection.find_one( {'_id': username} )['admin'] == 1:
-        generalCollection.insert_one( {'_id': 0, 'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} )
+def init():
+    generalCollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
+    tagCollection.update_many( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
@@ -467,5 +467,5 @@ while True:
                 hardreset()
             if message == '+resetcd':
                 resetcd()
-            if message == '+setup':
-                setup()
+            if message == '+init':
+                init()

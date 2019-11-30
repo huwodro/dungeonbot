@@ -8,6 +8,8 @@ import emoji
 import queue
 import auth
 import time
+import git
+import os
 import re
 
 botStart = time.time()
@@ -22,7 +24,7 @@ tagCollection = db['UserTags']
 
 def init():
     generalCollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
-    tagCollection.update_many( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
+    tagCollection.update_one( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
 
 init()
 
@@ -87,6 +89,14 @@ def whisper(user, message):
 
 def pong():
     sock.send("PONG\n".encode('utf-8'))
+
+def start():
+    repo = git.Repo(search_parent_directories=True)
+    branch = repo.active_branch.name
+    sha = repo.head.object.hexsha
+    sendMessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
+
+start()
 
 def ping():
     if generalCollection.find_one( {'_id': 0} )['open'] == 1:
@@ -245,6 +255,8 @@ def winrate():
 def enterdungeon():
     if generalCollection.find_one( {'_id': 0} )['open'] == 1:
         if userCollection.count_documents({'_id': username}, limit = 1) != 0:
+            if int((userCollection.find_one( {'_id': username})['dungeonTimeout']) - (time.time() - (userCollection.find_one( {'_id': username})['enteredTime']))) < 0:
+                opendungeon(username)
             if userCollection.find_one( {'_id': username})['entered'] == 0:
                 dungeonlevel = generalCollection.find_one( {'_id': 0 } )['dungeonlevel']
                 userlevel = userCollection.find_one( {'_id': username})['userlevel']
@@ -295,9 +307,7 @@ def enterdungeon():
                 dungeonSuccess = random.randint(1, 101)
                 userCollection.update_one( {'_id': username}, {'$set': {'entered': 1} } )
                 userCollection.update_one( {'_id': username}, {'$set': {'dungeonTimeout': dungeonTimeout} } )
-                enteredTimer = threading.Timer(float(dungeonTimeout), opendungeon, [username])
                 userCollection.update_one( {'_id': username}, {'$set': {'enteredTime': time.time()} } )
-                enteredTimer.start()
 
                 if dungeonSuccess <= successRate:
                     rareRunQuality = random.randint(1, 101)
@@ -417,6 +427,13 @@ def resetcd():
             userCollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
         sendMessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 
+def restart():
+    if tagCollection.find_one( {'_id': username} )['admin'] == 1:
+        repo = git.Repo(search_parent_directories=True)
+        repo.git.reset('--hard')
+        repo.remotes.origin.pull()
+        os.system('kill %d' % os.getpid())
+
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
     params = (('login', user),)
@@ -469,3 +486,5 @@ while True:
                 hardreset()
             if message == '+resetcd':
                 resetcd()
+            if message == '+restart':
+                restart()

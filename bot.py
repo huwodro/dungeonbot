@@ -42,7 +42,7 @@ def floodProtection():
     global floodCounter
     while True:
         floodCounter = 0
-        time.sleep(3)
+        time.sleep(2.5)
 
 def sendMessageQueue():
     while True:
@@ -111,7 +111,7 @@ def register():
         if userCollection.count_documents({'_id': username}, limit = 1) == 0:
             generalCollection.update_one( {'_id': 0}, {'$inc': {'dungeonlevel': 1} } )
             userCollection.insert_one( {'_id': username, 'userlevel': 1, 'total_experience': 0, 'current_experience': 0, 'dungeons': 0, 'dungeon_wins': 0, 'dungeon_losses': 0, 'entered': 0, 'enteredTime': 0, 'dungeonTimeout': 0} )
-            queueMessage('DING PogChamp Dungeon Level [' + str(generalCollection.find_one( {'_id': 0 } )['dungeonlevel']) + ']')
+            sendMessage('DING PogChamp Dungeon Level [' + str(generalCollection.find_one( {'_id': 0 } )['dungeonlevel']) + ']')
         else:
             sendMessage(username + ', you are already a registered user! 4Head')
 
@@ -458,27 +458,28 @@ while True:
         message = re.search(':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
-            if message == '!ping' or message == '+ping':
+            if (message == '!ping' or message == '+ping') and floodCounter == 0:
                 ping()
-            if message == '+commands':
+            if message == '+commands' and floodCounter == 0:
                 commands()
-            if message == '+register':
+            if message == '+register' and floodCounter == 0:
                 register()
-            if message == '+dungeonlvl':
+            if message == '+dungeonlvl' and floodCounter == 0:
                 dungeonlvl()
-            if message.startswith('+lvl'):
+            if message.startswith('+lvl') and floodCounter == 0:
                 userlvl()
-            if message.startswith('+xp'):
+            if message.startswith('+xp') and floodCounter == 0:
                 userexperience()
-            if message.startswith('+winrate'):
+            if message.startswith('+winrate') and floodCounter == 0:
                 winrate()
-            if message.startswith('+enterdungeon'):
+            if message.startswith('+enterdungeon') and floodCounter == 0:
                 enterdungeon()
-            if message == '+dungeonmaster':
+                floodCounter += 1
+            if message == '+dungeonmaster' and floodCounter == 0:
                 dungeonmaster()
-            if message == '+dungeonstatus':
+            if message == '+dungeonstatus' and floodCounter == 0:
                 dungeonstatus()
-            if message == '+dungeonstats':
+            if message == '+dungeonstats' and floodCounter == 0:
                 dungeonstats()
             if message.startswith('+tag'):
                 usertag()

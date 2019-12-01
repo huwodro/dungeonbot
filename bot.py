@@ -46,7 +46,7 @@ def floodProtection():
 
 def sendMessageQueue():
     while True:
-        time.sleep(1)
+        time.sleep(1.25)
         sock.send((messageQueue.get() + '\r\n').encode('utf-8'))
 
 def livecheck():

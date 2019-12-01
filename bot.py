@@ -455,7 +455,7 @@ while True:
         username = re.search('display-name=(.+?);', resp)
         if username:
             username = username.group(1)
-        message = re.search(':(.*):(.*)', resp)
+        message = re.search(':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
             if message == '!ping' or message == '+ping':

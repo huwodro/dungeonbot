@@ -46,27 +46,30 @@ def queuemessage(message):
 ### Admin Commands ###
 
 def resetcd(username):
-    if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-        for user in db.usercollection.find():
-            db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'entered': 0} } )
-            db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'enteredTime': 0} } )
-            db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
-        queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
+    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
+        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
+            for user in db.usercollection.find():
+                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'entered': 0} } )
+                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'enteredTime': 0} } )
+                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
+            queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 
 def restart(username):
-    if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-        repo = git.Repo(search_parent_directories=True)
-        repo.git.reset('--hard')
-        repo.remotes.origin.pull()
-        os.system('kill %d' % os.getpid())
+    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
+        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
+            repo = git.Repo(search_parent_directories=True)
+            repo.git.reset('--hard')
+            repo.remotes.origin.pull()
+            os.system('kill %d' % os.getpid())
 
 def usertag(username, message):
-    if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-        target = re.search('tag (.*)', message)
-        if target:
-            taglist = ['admin', 'moderator']
-            target = target.group(1).split()
-            if checkusername(target[0]):
-                if target[1]:
-                    if target[1].lower() in taglist:
-                        db.tagcollection.update_one( {'_id': checkusername(target[0]) }, {'$set': {target[1].lower(): 1} }, upsert=True )
+    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
+        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
+            target = re.search('tag (.*)', message)
+            if target:
+                taglist = ['admin', 'moderator']
+                target = target.group(1).split()
+                if checkusername(target[0]):
+                    if target[1]:
+                        if target[1].lower() in taglist:
+                            db.tagcollection.update_one( {'_id': checkusername(target[0]) }, {'$set': {target[1].lower(): 1} }, upsert=True )

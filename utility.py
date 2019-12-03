@@ -15,6 +15,8 @@ def start():
     db.generalcollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
     db.tagcollection.update_one( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
     repo = git.Repo(search_parent_directories=True)
+    repo.git.reset('--hard')
+    repo.remotes.origin.pull()
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
@@ -57,9 +59,6 @@ def resetcd(username):
 def restart(username):
     if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
         if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-            repo = git.Repo(search_parent_directories=True)
-            repo.git.reset('--hard')
-            repo.remotes.origin.pull()
             os.system('kill %d' % os.getpid())
 
 def usertag(username, message):

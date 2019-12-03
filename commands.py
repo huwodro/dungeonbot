@@ -236,7 +236,7 @@ def winrate(username, message):
         targetuser = re.search('winrate (.*)', message)
         if targetuser:
             targetuser = targetuser.group(1)
-            if targetuser.lower() == username.lower():
+            if (targetuser.lower() == username.lower()) or not util.checkusername(targetuser):
                 if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
                     util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
                 elif db.usercollection.find_one( {'_id': username } )['dungeons'] == 0:
@@ -245,7 +245,6 @@ def winrate(username, message):
                     dungeons = db.usercollection.find_one( {'_id': username} )['dungeons']
                     wins = db.usercollection.find_one( {'_id': username} )['dungeon_wins']
                     losses = db.usercollection.find_one( {'_id': username} )['dungeon_losses']
-
                     if wins == 1:
                         winword = ' Win'
                     else:
@@ -256,26 +255,7 @@ def winrate(username, message):
                         loseword = ' Losses'
                     util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
-                if not util.checkusername(targetuser):
-                    if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                        util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                    elif db.usercollection.find_one( {'_id': username } )['dungeons'] == 0:
-                        util.sendmessage(username + ", you haven't entered any dungeons NotLikeThis")
-                    else:
-                        dungeons = db.usercollection.find_one( {'_id': username} )['dungeons']
-                        wins = db.usercollection.find_one( {'_id': username} )['dungeon_wins']
-                        losses = db.usercollection.find_one( {'_id': username} )['dungeon_losses']
-
-                        if wins == 1:
-                            winword = ' Win'
-                        else:
-                            winword = ' Wins'
-                        if losses == 1:
-                            loseword = ' Loss'
-                        else:
-                            loseword = ' Losses'
-                        util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
-                elif db.usercollection.count_documents( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) }, limit = 1) == 0:
+                if db.usercollection.count_documents( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) }, limit = 1) == 0:
                     util.sendmessage(username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True))
                 elif db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeons'] == 0:
                     util.sendmessage(username + ", that user hasn't entered any dungeons NotLikeThis")
@@ -283,7 +263,6 @@ def winrate(username, message):
                     dungeons = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeons']
                     wins = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeon_wins']
                     losses = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeon_losses']
-
                     if wins == 1:
                         winword = ' Win'
                     else:

@@ -28,7 +28,7 @@ while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
 
     if resp.startswith('PING'):
-        sock.send("PONG\n".encode('utf-8'))
+        util.pong()
 
     elif len(resp) > 0:
         username = re.search('display-name=(.+?);', resp)

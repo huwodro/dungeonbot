@@ -54,6 +54,9 @@ def opendungeon(username):
     db.usercollection.update_one( {'_id': username}, {'$set': {'dungeonTimeout': 0} } )
     opendungeonlock.release()
 
+def pong():
+    sock.send("PONG\n".encode('utf-8'))
+
 def queuemessage(message):
     msg = 'PRIVMSG ' + auth.channel + ' :' + message
     messagequeue.put(msg)

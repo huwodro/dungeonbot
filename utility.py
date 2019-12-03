@@ -6,10 +6,51 @@ import os
 import queue
 import re
 import requests
+import socket
 import threading
+import time
 
+floodcounter = 0
 messagequeue = queue.Queue()
 opendungeonlock = threading.Lock()
+
+server = 'irc.chat.twitch.tv'
+port = 6667
+
+sock = socket.socket()
+sock.connect((server, port))
+sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
+sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
+sock.send(('JOIN ' + auth.channel + '\r\n').encode('utf-8'))
+sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+
+def floodprotection():
+    global floodcounter
+    while True:
+        if floodcounter > 0:
+            time.sleep(3)
+            floodcounter = 0
+
+floodprotectionthread = threading.Thread(target = floodprotection)
+floodprotectionthread.start()
+
+def sendmessagequeue():
+    while True:
+        time.sleep(1.25)
+        sock.send((messagequeue.get() + '\r\n').encode('utf-8'))
+
+sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
+sendmessagequeuethread.start()
+
+def sendmessage(message):
+    global floodcounter
+    if messagequeue.empty():
+        msg = 'PRIVMSG ' + auth.channel + ' :' + message
+        sock.send((msg + '\r\n').encode('utf-8'))
+        floodcounter += 1
+
+def whisper(user, message):
+    sendmessage('.w '+ user + ' ' + message)
 
 def start():
     db.generalcollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
@@ -19,7 +60,7 @@ def start():
     repo.remotes.origin.pull()
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
-    return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
+    sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }

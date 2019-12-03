@@ -56,9 +56,10 @@ sendmessagequeuethread.start()
 def sendmessage(message):
     global floodcounter
     if floodcounter == 0 and util.messagequeue.empty():
-        msg = 'PRIVMSG ' + auth.channel + ' :' + message
-        sock.send((msg + '\r\n').encode('utf-8'))
-        floodcounter += 1
+        if type(message) is str:
+            msg = 'PRIVMSG ' + auth.channel + ' :' + message
+            sock.send((msg + '\r\n').encode('utf-8'))
+            floodcounter += 1
 
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)
@@ -79,38 +80,41 @@ while True:
         if message:
             message = message.group(2).strip()
 
-            if (message == '!ping' or message == '+ping') and floodcounter == 0:
-                sendmessage(cmd.ping())
+            if db.generalcollection.find_one( {'_id': 0} )['open'] == 1:
+                if floodcounter == 0:
 
-            if (message == '+commands' or message == '+help') and floodcounter == 0:
-                sendmessage(cmd.commands())
+                    if (message == '+commands' or message == '+help'):
+                        sendmessage(cmd.commands())
 
-            if message == '+register' and floodcounter == 0:
-                sendmessage(cmd.register(username))
+                    if message.startswith('+enterdungeon'):
+                        sendmessage(cmd.enterdungeon(username, message))
 
-            if (message == '+dungeonlvl' or message == '+dungeonlevel') and floodcounter == 0:
-                sendmessage(cmd.dungeonlvl())
+                    if (message == '+dungeonlvl' or message == '+dungeonlevel'):
+                        sendmessage(cmd.dungeonlvl())
 
-            if (message.startswith('+xp') or message.startswith('+exp')) and floodcounter == 0:
-                sendmessage(cmd.userexperience(username, message))
+                    if message == '+dungeonmaster':
+                        sendmessage(cmd.dungeonmaster())
 
-            if (message.startswith('+lvl') or message.startswith('+level')) and floodcounter == 0:
-                sendmessage(cmd.userlevel(username, message))
+                    if message == '+dungeonstats':
+                        sendmessage(cmd.dungeonstats())
 
-            if message.startswith('+winrate') and floodcounter == 0:
-                sendmessage(cmd.winrate(username, message))
+                    if message == '+dungeonstatus':
+                        sendmessage(cmd.dungeonstatus())
 
-            if message.startswith('+enterdungeon') and floodcounter == 0:
-                sendmessage(cmd.enterdungeon(username, message))
+                    if (message == '!ping' or message == '+ping'):
+                        sendmessage(cmd.ping())
 
-            if message == '+dungeonmaster' and floodcounter == 0:
-                sendmessage(cmd.dungeonmaster())
+                    if message == '+register':
+                        sendmessage(cmd.register(username))
 
-            if message == '+dungeonstats' and floodcounter == 0:
-                sendmessage(cmd.dungeonstats())
+                    if (message.startswith('+xp') or message.startswith('+exp')):
+                        sendmessage(cmd.userexperience(username, message))
 
-            if message == '+dungeonstatus' and floodcounter == 0:
-                sendmessage(cmd.dungeonstatus())
+                    if (message.startswith('+lvl') or message.startswith('+level')):
+                        sendmessage(cmd.userlevel(username, message))
+
+                    if message.startswith('+winrate'):
+                        sendmessage(cmd.winrate(username, message))
 
             if message.startswith('+tag'):
                 util.usertag(username, message)

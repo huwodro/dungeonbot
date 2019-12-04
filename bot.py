@@ -44,7 +44,7 @@ while True:
                     if (message == '+commands' or message == '+help'):
                         cmd.commands()
 
-                    if message.startswith('+enterdungeon'):
+                    if message == '+enterdungeon':
                         cmd.enterdungeon(username, message)
 
                     if (message == '+dungeonlvl' or message == '+dungeonlevel'):

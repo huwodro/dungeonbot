@@ -15,52 +15,28 @@ def commands():
 
 def enterdungeon(username, message):
     if db.usercollection.count_documents({'_id': username}, limit = 1) != 0:
-        if int((db.usercollection.find_one( {'_id': username})['dungeonTimeout']) - (time.time() - (db.usercollection.find_one( {'_id': username})['enteredTime']))) < 0:
+        if int((db.usercollection.find_one( {'_id': username})['dungeonTimeout']) - (time.time() - (db.usercollection.find_one( {'_id': username})['enteredTime']))) <= 0:
             util.opendungeon(username)
         if db.usercollection.find_one( {'_id': username})['entered'] == 0:
             dungeonlevel = db.generalcollection.find_one( {'_id': 0 } )['dungeonlevel']
             userlevel = db.usercollection.find_one( {'_id': username})['userlevel']
 
-            if message == '+enterdungeon':
-                if userlevel > dungeonlevel:
-                    levelrun = dungeonlevel
-                    successrate = 65-((dungeonlevel-userlevel)*7)
-                    experiencegain = int(100*dungeonlevel)*(1.2**(dungeonlevel-userlevel))
-                    dungeontimeout = 600-(60*(userlevel-dungeonlevel))
-                else:
-                    levelrun = userlevel
-                    successrate = 65
-                    experiencegain = int(100*userlevel)
-                    dungeontimeout = 600
+            if userlevel > dungeonlevel:
+                levelrun = dungeonlevel
+                successrate = 65+((userlevel-dungeonlevel)*7)
+                successrate = successrate if successrate <= 100 else 100
+                experiencegain = int(100*dungeonlevel)*(1-((userlevel-dungeonlevel))*0.2)
+                experiencegain = experiencegain if experiencegain >= 0 else 0
+                dungeontimeout = 600
             else:
-                targetnumber = re.search('enterdungeon (.*)', message)
-                if targetnumber:
-                    targetnumber = targetnumber.group(1)
-                    if targetnumber.isnumeric() == False:
-                        if userlevel > dungeonlevel:
-                            levelrun = dungeonlevel
-                            successrate = 65-((dungeonlevel-userlevel)*7)
-                            experiencegain = int(100*dungeonlevel)*(1.2**(dungeonlevel-userlevel))
-                            dungeontimeout = 600-(60*(userlevel-dungeonlevel))
-                        else:
-                            levelrun = userlevel
-                            successrate = 65
-                            experiencegain = int(100*userlevel)
-                            dungeontimeout = 600
-                    elif int(targetnumber) <= 0:
-                        util.sendmessage(username + ", you can't enter dungeons below level [1]" + emoji.emojize(' :crossed_swords:', use_aliases=True))
-                        return
-                    elif int(targetnumber) > dungeonlevel:
-                        util.sendmessage(username + ', the Dungeon is currently level [' + str(dungeonlevel) + "] - You can't venture beyond this level yet" + emoji.emojize(' :crossed_swords:', use_aliases=True))
-                        return
-                    elif int(targetnumber) > (userlevel + 5):
-                        util.sendmessage(username + ', the Dungeon [' + targetnumber + "] is too high level for you to enter. You can't enter dungeons that exceed 5 levels above your own" + emoji.emojize(' :crossed_swords:', use_aliases=True))
-                        return
-                    else:
-                        levelrun = int(targetnumber)
-                        successrate = 65-((int(targetnumber)-userlevel)*7)
-                        experiencegain = (100*int(targetnumber))*(1.2**(int(targetnumber)-userlevel))
-                        dungeontimeout = 600-(60*(userlevel-int(targetnumber)))
+                levelrun = userlevel
+                successrate = 65
+                experiencegain = int(100*userlevel)
+                dungeontimeout = 600
+
+            if experiencegain == 0:
+                util.sendmessage(username + ', the Dungeon [' + str(dungeonlevel) + "] is too low level for you to enter. You won't gain any experience " + emoji.emojize(':crossed_swords:', use_aliases=True))
+                return
 
             dungeonsuccess = random.randint(1, 101)
             db.usercollection.update_one( {'_id': username}, {'$set': {'entered': 1} } )

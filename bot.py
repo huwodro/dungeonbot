@@ -47,7 +47,6 @@ while True:
         if message:
             message = message.group(2).strip()
             if db(opt.DUNGEONS).find_one_by_id(0)['open'] == 1:
-
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

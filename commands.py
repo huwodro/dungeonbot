@@ -146,8 +146,8 @@ def register(username):
     if user == None:
         db(opt.DUNGEONS).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
-        user = db(opt.USERS).find_one_by_id(username)
-        util.queuemessage('DING PogChamp Dungeon Level [' + str(user['dungeon_level']) + ']')
+        dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+        util.queuemessage('DING PogChamp Dungeon Level [' + str(dungeon['dungeon_level']) + ']')
     else:
         util.sendmessage(username + ', you are already a registered user! 4Head')
 
@@ -253,7 +253,7 @@ def winrate(username, message):
                         util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
                 targetusername = re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE)
-                registered = util.checkuserregistered(targetusername)
+                registered = util.checkuserregistered(username, targetusername)
                 if registered:
                     target = db(opt.USERS).find_one_by_id(targetusername)
                     if target['dungeons'] == 0:

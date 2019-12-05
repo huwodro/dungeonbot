@@ -13,6 +13,8 @@ import schemes
 
 db = opt.MongoDatabase
 
+closed = 1
+
 def livecheck():
     while True:
         headers = { 'Client-ID': auth.clientID }
@@ -44,8 +46,8 @@ while True:
         message = re.search(r':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
-            print(message)
             if db(opt.DUNGEONS).find_one_by_id(0)['open'] == 1:
+
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

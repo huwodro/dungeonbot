@@ -93,12 +93,13 @@ def start():
     defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
     if defaultadmin == None:
         db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
-    # repo = git.Repo(search_parent_directories=True)
-    # repo.git.reset('--hard')
-    # repo.remotes.origin.pull()
-    # branch = repo.active_branch.name
-    # sha = repo.head.object.hexsha
-    # sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
+    repo = git.Repo(search_parent_directories=True)
+    repo.git.reset('--hard')
+    repo.remotes.origin.pull()
+    branch = repo.active_branch.name
+    sha = repo.head.object.hexsha
+    sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
+
 
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)

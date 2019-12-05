@@ -38,7 +38,6 @@ def checkusername(user):
     elif not response['data']:
         return
     elif 'data' in response:
-        print(response)
         return response['data'][0]['display_name']
     else:
         return
@@ -74,7 +73,6 @@ def sendmessage(message):
     if messagequeue.empty():
         msg = 'PRIVMSG ' + auth.channel + ' :' + message
         sock.send((msg + '\r\n').encode('utf-8'))
-        print(msg)
         floodcounter += 1
 
 def sendmessagequeue():
@@ -86,10 +84,9 @@ sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
 def start():
-    print('Starting...')
-    defaultdungeon = db(opt.DUNGEONS).find_one_by_id(0)
+    defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
-        db(opt.DUNGEONS).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
+        db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
     defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
     if defaultadmin == None:
         db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
@@ -99,7 +96,6 @@ def start():
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
     sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
-
 
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)
@@ -124,8 +120,8 @@ def resetcd(username):
         for user in db.raw[opt.USERS].find():
             db(opt.USERS).update_one(user['_id'], { '$set': {
                 'entered': 0,
-                'enteredTime': 0,
-                'dungeonTimeout': 0
+                'last_entry': 0,
+                'next_entry': 0
             }})
         queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 

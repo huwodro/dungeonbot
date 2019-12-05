@@ -24,7 +24,7 @@ def enterdungeon(username, message):
             util.opendungeon(username)
             user = db(opt.USERS).find_one_by_id(username)
         if user['entered'] == 0:
-            dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+            dungeon = db(opt.GENERAL).find_one_by_id(0)
             dungeonlevel = dungeon['dungeon_level']
             userlevel = user['user_level']
 
@@ -72,7 +72,7 @@ def enterdungeon(username, message):
                     'current_experience': experiencegain,
                     'dungeon_wins': 1
                 }})
-                db(opt.DUNGEONS).update_one(0, {'$inc': {
+                db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experiencegain,
                     'total_wins': 1
                 }})
@@ -86,17 +86,17 @@ def enterdungeon(username, message):
                     util.queuemessage(username + ' just leveled up! Level - [' + str(user['user_level'] + 1) + '] PogChamp')
             else:
                 db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })
-                db(opt.DUNGEONS).update_one(0, { '$inc': { 'total_losses': 1 } })
+                db(opt.GENERAL).update_one(0, { '$inc': { 'total_losses': 1 } })
                 util.queuemessage(username + ', you failed to beat the dungeon level [' + str(levelrun) + '] - No experience gained FeelsBadMan')
             db(opt.USERS).update_one(username, { '$inc': { 'dungeons': 1 } })
-            db(opt.DUNGEONS).update_one(0, { '$inc': { 'total_dungeons': 1 } })
+            db(opt.GENERAL).update_one(0, { '$inc': { 'total_dungeons': 1 } })
         else:
-            util.sendmessage(username + ', you have already entered the dungeon recently, ' + str(datetime.timedelta(seconds=(int(user['next_entry']) - time.time()))) + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True))
+            util.sendmessage(username + ', you have already entered the dungeon recently, ' + str(datetime.timedelta(seconds=(int(user['next_entry']) - time.time()))).split('.')[0] + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True))
     else:
         util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:'))
 
 def dungeonlvl():
-    dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+    dungeon = db(opt.GENERAL).find_one_by_id(0)
     util.sendmessage(emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + str(dungeon['dungeon_level']) + ']')
 
 def dungeonmaster():
@@ -113,7 +113,7 @@ def dungeonmaster():
         util.sendmessage('There is currently no Dungeon Master FeelsBadMan')
 
 def dungeonstats():
-    dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+    dungeon = db(opt.GENERAL).find_one_by_id(0)
     dungeons = dungeon['total_dungeons']
     wins = dungeon['total_wins']
     losses = dungeon['total_losses']
@@ -130,7 +130,7 @@ def dungeonstats():
     else:
         loseword = ' Losses'
     if dungeons != 0:
-        util.sendmessage('General Dungeon Stats: ' + str(dungeons) + dungeonword + ' / ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+        util.sendmessage('General Dungeon Stats: ' + str(dungeons) + dungeonword + ' / ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str(round((((wins)/(dungeons))*100), 3)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
     else:
         util.sendmessage('General Dungeon Stats: ' + str(dungeons) + dungeonword + ' / ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + '0% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
 
@@ -144,9 +144,9 @@ def ping():
 def register(username):
     user = db(opt.USERS).find_one_by_id(username)
     if user == None:
-        db(opt.DUNGEONS).update_one(0, { '$inc': { 'dungeon_level': 1 } })
+        db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
-        dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+        dungeon = db(opt.GENERAL).find_one_by_id(0)
         util.queuemessage('DING PogChamp Dungeon Level [' + str(dungeon['dungeon_level']) + ']')
     else:
         util.sendmessage(username + ', you are already a registered user! 4Head')
@@ -227,7 +227,7 @@ def winrate(username, message):
                     loseword = ' Loss'
                 else:
                     loseword = ' Losses'
-                util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str(round((((wins)/(dungeons))*100), 3)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
     else:
         targetuser = re.search('winrate (.*)', message)
         if targetuser:
@@ -250,7 +250,7 @@ def winrate(username, message):
                             loseword = ' Loss'
                         else:
                             loseword = ' Losses'
-                        util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                        util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str(round((((wins)/(dungeons))*100), 3)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
                 targetusername = re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE)
                 registered = util.checkuserregistered(username, targetusername)
@@ -270,4 +270,4 @@ def winrate(username, message):
                             loseword = ' Loss'
                         else:
                             loseword = ' Losses'
-                        util.sendmessage(str(target['_id']) + '\'s winrate: ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                        util.sendmessage(str(target['_id']) + '\'s winrate: ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str(round((((wins)/(dungeons))*100), 3)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))

@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 import auth
 
-DUNGEONS = 'Dungeons'
+GENERAL = 'General'
 USERS = 'UserStats'
 TAGS = 'UserTags'
 
@@ -11,7 +11,7 @@ db = client['Twitch']
 class MongoDatabase:
   def __init__(self, collection):
     self.collection = collection
-    
+
   raw = db
 
   def find_one(self, f=None, *args, **options):

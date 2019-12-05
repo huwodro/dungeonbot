@@ -13,17 +13,15 @@ import schemes
 
 db = opt.MongoDatabase
 
-closed = 1
-
 def livecheck():
     while True:
         headers = { 'Client-ID': auth.clientID }
-        params = (('user_login', auth.channeluser),)
+        params = (('user_login', auth.channelname),)
         response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
         if not response['data']:
-            db(opt.DUNGEONS).update_one(0, { '$set': { 'open': 1 } })
+            db(opt.GENERAL).update_one(0, { '$set': { 'open': 1 } })
         else:
-            db(opt.DUNGEONS).update_one(0, { '$set': { 'open': 0 } })
+            db(opt.GENERAL).update_one(0, { '$set': { 'open': 0 } })
         time.sleep(5)
 
 livecheckthread = threading.Thread(target = livecheck)
@@ -33,8 +31,6 @@ util.start()
 
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-
-    print(resp)
 
     if resp.startswith('PING'):
         util.pong()
@@ -46,7 +42,8 @@ while True:
         message = re.search(r':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
-            if db(opt.DUNGEONS).find_one_by_id(0)['open'] == 1:
+
+            if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

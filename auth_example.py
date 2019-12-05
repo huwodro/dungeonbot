@@ -7,3 +7,5 @@ clientID=''
 nickname=''
 channelname=''
 channel='#'
+
+defaultadmin='Huwodro'

@@ -8,6 +8,8 @@ import threading
 import time
 import utility as util
 
+closed = 1
+
 def livecheck():
     while True:
         headers = { 'Client-ID': auth.clientID }
@@ -38,7 +40,7 @@ while True:
         if message:
             message = message.group(2).strip()
 
-            if db.generalcollection.find_one( {'_id': 0} )['open'] == 1:
+            if db.generalcollection.find_one( {'_id': 0} )['open'] == 1 and closed == 0:
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

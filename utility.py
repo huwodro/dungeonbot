@@ -77,8 +77,12 @@ sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
 def start():
-    db.generalcollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
-    db.tagcollection.update_one( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
+    # db.generalcollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
+    # db.tagcollection.update_one( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
+
+    db.generalcollection.update_one( {'_id': 0}, {'$rename': {'dungeonlevel': 'dungeon_level'}})
+    db.usercollection.update_many({}, {'$rename': {'userlevel': 'user_level', 'enteredTime': 'last_entry', 'dungeonTimeout': 'next_entry'}})
+
     repo = git.Repo(search_parent_directories=True)
     repo.git.reset('--hard')
     repo.remotes.origin.pull()

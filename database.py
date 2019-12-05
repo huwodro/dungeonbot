@@ -1,14 +1,11 @@
 from pymongo import MongoClient
 import auth
 
-db_host = 'localhost'
-db_port = 27017
-
 GENERAL = 'General'
 USERS = 'UserStats'
 TAGS = 'UserTags'
 
-client = MongoClient(db_host, db_port)
+client = MongoClient(auth.db_host, auth.db_port)
 db = client['Twitch']
 
 class MongoDatabase:

@@ -4,7 +4,8 @@ DUNGEON = {
   'total_experience': 0,
   'total_dungeons': 0,
   'total_wins': 0,
-  'total_losses': 0
+  'total_losses': 0,
+  'commit': '0'
 }
 
 USER = {

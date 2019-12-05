@@ -1,11 +1,12 @@
-# Rename this file to auth.py when you're done setting it up.
-db_host='localhost'
-db_port=27017
+# Rename this file to auth.py when you're done setting it up
 
-token=''
-clientID=''
-nickname=''
-channelname=''
-channel='#'
+db_host = 'localhost'
+db_port = 27017
 
-defaultadmin='Huwodro'
+token = ''
+clientID = ''
+nickname = ''
+channelname = ''
+channel = '#'
+
+defaultadmin = 'Huwodro'

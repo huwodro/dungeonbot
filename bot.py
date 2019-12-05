@@ -1,24 +1,27 @@
-import auth
-import commands as cmd
-import db
-import emoji
 import re
-import requests
-import threading
 import time
-import utility as util
+import threading
 
-closed = 1
+import emoji
+import requests
+
+import auth
+import utility as util
+import commands as cmd
+import database as opt
+import schemes
+
+db = opt.MongoDatabase
 
 def livecheck():
     while True:
         headers = { 'Client-ID': auth.clientID }
-        params = (('user_login', auth.channeluser),)
+        params = (('user_login', auth.channelname),)
         response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
         if not response['data']:
-            db.generalcollection.update_one( {'_id': 0}, {'$set': {'open': 1} } )
+            db(opt.GENERAL).update_one(0, { '$set': { 'open': 1 } })
         else:
-            db.generalcollection.update_one( {'_id': 0}, {'$set': {'open': 0} } )
+            db(opt.GENERAL).update_one(0, { '$set': { 'open': 0 } })
         time.sleep(5)
 
 livecheckthread = threading.Thread(target = livecheck)
@@ -36,11 +39,11 @@ while True:
         username = re.search('display-name=(.+?);', resp)
         if username:
             username = username.group(1)
-        message = re.search(':(.*)\s:(.*)', resp)
+        message = re.search(r':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
 
-            if db.generalcollection.find_one( {'_id': 0} )['open'] == 1 and closed == 0:
+            if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

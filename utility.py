@@ -1,14 +1,19 @@
-import auth
-import db
-import emoji
-import git
 import os
 import queue
 import re
-import requests
 import socket
 import threading
 import time
+
+import requests
+import emoji
+import git
+
+import auth
+import database as opt
+import schemes
+
+db = opt.MongoDatabase
 
 floodcounter = 0
 messagequeue = queue.Queue()
@@ -49,9 +54,11 @@ floodprotectionthread.start()
 
 def opendungeon(username):
     opendungeonlock.acquire()
-    db.usercollection.update_one( {'_id': username}, {'$set': {'entered': 0} } )
-    db.usercollection.update_one( {'_id': username}, {'$set': {'enteredTime': 0} } )
-    db.usercollection.update_one( {'_id': username}, {'$set': {'dungeonTimeout': 0} } )
+    db(opt.USERS).update_one(username, {'$set': {
+        'entered': 0,
+        'last_entry': 0,
+        'next_entry': 0
+    }})
     opendungeonlock.release()
 
 def pong():
@@ -77,12 +84,12 @@ sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
 def start():
-    # db.generalcollection.update_many( {'_id': 0}, {'$setOnInsert': {'open': 0, 'dungeonlevel': 0, 'total_experience': 0, 'total_dungeons': 0, 'total_wins': 0, 'total_losses': 0} }, upsert=True )
-    # db.tagcollection.update_one( {'_id': 'Huwodro'}, {'$setOnInsert': {'admin': 1} }, upsert=True )
-
-    db.generalcollection.update_one( {'_id': 0}, {'$rename': {'dungeonlevel': 'dungeon_level'}})
-    db.usercollection.update_many({}, {'$rename': {'userlevel': 'user_level', 'enteredTime': 'last_entry', 'dungeonTimeout': 'next_entry'}})
-
+    defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
+    if defaultdungeon == None:
+        db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
+    defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
+    if defaultadmin == None:
+        db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
     repo = git.Repo(search_parent_directories=True)
     repo.git.reset('--hard')
     repo.remotes.origin.pull()
@@ -93,30 +100,45 @@ def start():
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)
 
+def checkuserregistered(username, req=None):
+    user = db(opt.USERS).find_one_by_id(username)
+    if user == None:
+        sameuser = req == username if req != None else True
+        if sameuser:
+            sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
+        else:
+            sendmessage(username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True))
+        return False
+    else:
+        return True
+
 ### Admin Commands ###
 
 def resetcd(username):
-    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
-        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-            for user in db.usercollection.find():
-                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'entered': 0} } )
-                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'enteredTime': 0} } )
-                db.usercollection.update_one( {'_id': user['_id']}, {'$set': {'dungeonTimeout': 0} } )
-            queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin != None and admin['admin'] == 1:
+        for user in db.raw[opt.USERS].find():
+            db(opt.USERS).update_one(user['_id'], { '$set': {
+                'entered': 0,
+                'last_entry': 0,
+                'next_entry': 0
+            }})
+        queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
 
 def restart(username):
-    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
-        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-            os.system('kill %d' % os.getpid())
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin != None and admin['admin'] == 1:
+        os.system('kill %d' % os.getpid())
 
 def usertag(username, message):
-    if db.tagcollection.count_documents({'_id': username}, limit = 1) == 1:
-        if db.tagcollection.find_one( {'_id': username} )['admin'] == 1:
-            target = re.search('tag (.*)', message)
-            if target:
-                taglist = ['admin', 'moderator']
-                target = target.group(1).split()
-                if checkusername(target[0]):
-                    if target[1]:
-                        if target[1].lower() in taglist:
-                            db.tagcollection.update_one( {'_id': checkusername(target[0]) }, {'$set': {target[1].lower(): 1} }, upsert=True )
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin != None and admin['admin'] == 1:
+        target = re.search('tag (.*)', message)
+        if target:
+            taglist = ['admin', 'moderator']
+            target = target.group(1).split()
+            username = checkusername(target[0])
+            if username:
+                if target[1]:
+                    if target[1].lower() in taglist:
+                        db(opt.TAGS).update_one(username, {'$set': {target[1].lower(): 1} }, upsert=True)

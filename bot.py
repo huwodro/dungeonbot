@@ -1,12 +1,17 @@
-import auth
-import commands as cmd
-import db
-import emoji
 import re
-import requests
-import threading
 import time
+import threading
+
+import emoji
+import requests
+
+import auth
 import utility as util
+import commands as cmd
+import database as opt
+import schemes
+
+db = opt.MongoDatabase
 
 def livecheck():
     while True:
@@ -14,9 +19,9 @@ def livecheck():
         params = (('user_login', auth.channeluser),)
         response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
         if not response['data']:
-            db.generalcollection.update_one( {'_id': 0}, {'$set': {'open': 1} } )
+            db(opt.DUNGEONS).update_one(0, { '$set': { 'open': 1 } })
         else:
-            db.generalcollection.update_one( {'_id': 0}, {'$set': {'open': 0} } )
+            db(opt.DUNGEONS).update_one(0, { '$set': { 'open': 0 } })
         time.sleep(5)
 
 livecheckthread = threading.Thread(target = livecheck)
@@ -27,6 +32,8 @@ util.start()
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
 
+    print(resp)
+
     if resp.startswith('PING'):
         util.pong()
 
@@ -34,11 +41,11 @@ while True:
         username = re.search('display-name=(.+?);', resp)
         if username:
             username = username.group(1)
-        message = re.search(':(.*)\s:(.*)', resp)
+        message = re.search(r':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
-
-            if db.generalcollection.find_one( {'_id': 0} )['open'] == 1:
+            print(message)
+            if db(opt.DUNGEONS).find_one_by_id(0)['open'] == 1:
                 if util.floodcounter == 0:
 
                     if (message == '+commands' or message == '+help'):

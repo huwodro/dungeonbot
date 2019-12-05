@@ -1,11 +1,15 @@
 import datetime
-import db
-import emoji
 import random
 import re
 import time
 import utility as util
 
+import emoji
+
+import database as opt
+import schemes
+
+db = opt.MongoDatabase
 botstart = time.time()
 
 ### User Commands ###
@@ -14,12 +18,15 @@ def commands():
     util.sendmessage(emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +dungeonstatus')
 
 def enterdungeon(username, message):
-    if db.usercollection.count_documents({'_id': username}, limit = 1) != 0:
-        if int((db.usercollection.find_one( {'_id': username})['dungeonTimeout']) - (time.time() - (db.usercollection.find_one( {'_id': username})['enteredTime']))) <= 0:
+    user = db(opt.USERS).find_one_by_id(username)
+    if user != None:
+        if int(user['next_entry']- time.time()) < 0:
             util.opendungeon(username)
-        if db.usercollection.find_one( {'_id': username})['entered'] == 0:
-            dungeonlevel = db.generalcollection.find_one( {'_id': 0 } )['dungeonlevel']
-            userlevel = db.usercollection.find_one( {'_id': username})['userlevel']
+            user = db(opt.USERS).find_one_by_id(username)
+        if user['entered'] == 0:
+            dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+            dungeonlevel = dungeon['dungeon_level']
+            userlevel = user['user_level']
 
             if userlevel > dungeonlevel:
                 levelrun = dungeonlevel
@@ -39,23 +46,19 @@ def enterdungeon(username, message):
                 return
 
             dungeonsuccess = random.randint(1, 101)
-            db.usercollection.update_one( {'_id': username}, {'$set': {'entered': 1} } )
-            db.usercollection.update_one( {'_id': username}, {'$set': {'dungeonTimeout': dungeontimeout} } )
-            db.usercollection.update_one( {'_id': username}, {'$set': {'enteredTime': time.time()} } )
+            db(opt.USERS).update_one(username, {'$set': {
+                'entered': 1,
+                'last_entry': time.time(),
+                'next_entry': time.time() + dungeontimeout
+            }})
 
             if dungeonsuccess <= successrate:
                 rarerunquality = random.randint(1, 101)
                 if rarerunquality <= 10:
                     experiencegain = int(experiencegain*0.5)
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'total_experience': experiencegain } } )
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'current_experience': experiencegain } } )
-                    db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_experience': experiencegain } } )
                     util.queuemessage(username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                 elif rarerunquality >= 90:
                     experiencegain = int(experiencegain*1.5)
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'total_experience': experiencegain } } )
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'current_experience': experiencegain } } )
-                    db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_experience': experiencegain } } )
                     util.queuemessage(username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                 else:
                     normalrunquality = random.randint(75,126)
@@ -64,46 +67,56 @@ def enterdungeon(username, message):
                         util.queuemessage(username + ' | Bad Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                     else:
                         util.queuemessage(username + ' | Good Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'total_experience': experiencegain } } )
-                    db.usercollection.update_one( {'_id': username}, {'$inc': { 'current_experience': experiencegain } } )
-                    db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_experience': experiencegain } } )
-                db.usercollection.update_one( {'_id': username}, {'$inc': { 'dungeon_wins': 1 } } )
-                db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_wins': 1 } } )
-                if (((userlevel+1)**2)*100) - db.usercollection.find_one( {'_id': username})['current_experience'] <= 0:
-                    while (((db.usercollection.find_one( {'_id': username})['userlevel']+1)**2)*100) - db.usercollection.find_one( {'_id': username})['current_experience'] <= 0:
-                        db.usercollection.update_one( {'_id': username}, {'$inc': { 'userlevel': 1 } } )
-                        db.usercollection.update_one( {'_id': username}, {'$inc': { 'current_experience': -(((db.usercollection.find_one( {'_id': username})['userlevel'])**2)*100) } } )
-                    util.queuemessage(username + ' just leveled up! Level - [' + str(db.usercollection.find_one( {'_id': username})['userlevel']) + '] PogChamp')
+                db(opt.USERS).update_one(username, {'$inc': {
+                    'total_experience': experiencegain,
+                    'current_experience': experiencegain,
+                    'dungeon_wins': 1
+                }})
+                db(opt.DUNGEONS).update_one(0, {'$inc': {
+                    'total_experience': experiencegain,
+                    'total_wins': 1
+                }})
+                user_calculated_experience = user['current_experience'] + experiencegain
+                if (((userlevel+1)**2)*100) - user_calculated_experience <= 0:
+                    while (((user['user_level']+1)**2)*100) - user_calculated_experience <= 0:
+                        db(opt.USERS).update_one(username, {'$inc': {
+                            'user_level': 1,
+                            'current_experience': -(((user['user_level'])**2)*100)
+                        }})
+                    util.queuemessage(username + ' just leveled up! Level - [' + str(user['user_level'] + 1) + '] PogChamp')
             else:
-                db.usercollection.update_one( {'_id': username}, {'$inc': { 'dungeon_losses': 1 } } )
-                db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_losses': 1 } } )
+                db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })
+                db(opt.DUNGEONS).update_one(0, { '$inc': { 'total_losses': 1 } })
                 util.queuemessage(username + ', you failed to beat the dungeon level [' + str(levelrun) + '] - No experience gained FeelsBadMan')
-            db.usercollection.update_one( {'_id': username}, {'$inc': { 'dungeons': 1 } } )
-            db.generalcollection.update_one( {'_id': 0}, {'$inc': { 'total_dungeons': 1 } } )
+            db(opt.USERS).update_one(username, { '$inc': { 'dungeons': 1 } })
+            db(opt.DUNGEONS).update_one(0, { '$inc': { 'total_dungeons': 1 } })
         else:
-            util.sendmessage(username + ', you have already entered the dungeon recently, ' + str(datetime.timedelta(seconds=(int((db.usercollection.find_one( {'_id': username})['dungeonTimeout']) - (time.time() - (db.usercollection.find_one( {'_id': username})['enteredTime'])))))) + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True))
+            util.sendmessage(username + ', you have already entered the dungeon recently, ' + str(datetime.timedelta(seconds=(int(user['next_entry']) - time.time()))) + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True))
     else:
         util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:'))
 
 def dungeonlvl():
-    util.sendmessage(emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + str(db.generalcollection.find_one( {'_id': 0} )['dungeonlevel']) + ']')
+    dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+    util.sendmessage(emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + str(dungeon['dungeon_level']) + ']')
 
 def dungeonmaster():
-    topuser = db.usercollection.find_one(sort=[('total_experience', -1)])
+    topuser = db(opt.USERS).find_one(sort=[('total_experience', -1)])
     if topuser:
         highestexperience = topuser['total_experience']
-        numberoftopusers = db.usercollection.count_documents( {'total_experience': highestexperience} )
+        numberoftopusers = db(opt.USERS).count_documents( {'total_experience': highestexperience} )
         if numberoftopusers == 1:
-            util.sendmessage(str(db.usercollection.find_one( {'total_experience': highestexperience} )['_id']) + ' is the current Dungeon Master with ' + str(highestexperience) + ' experience' + emoji.emojize(' :crown:', use_aliases=True))
+            thetopuser = db(opt.USERS).find_one( {'total_experience': highestexperience} )
+            util.sendmessage(str(thetopuser['_id']) + ' is the current Dungeon Master with ' + str(highestexperience) + ' experience' + emoji.emojize(' :crown:', use_aliases=True))
         else:
             util.sendmessage('There are ' + str(numberoftopusers) + ' users with ' + str(highestexperience) + ' experience, no one is currently Dungeon Master FeelsBadMan')
     else:
         util.sendmessage('There is currently no Dungeon Master FeelsBadMan')
 
 def dungeonstats():
-    dungeons = db.generalcollection.find_one( {'_id': 0} )['total_dungeons']
-    wins = db.generalcollection.find_one( {'_id': 0} )['total_wins']
-    losses = db.generalcollection.find_one( {'_id': 0} )['total_losses']
+    dungeon = db(opt.DUNGEONS).find_one_by_id(0)
+    dungeons = dungeon['total_dungeons']
+    wins = dungeon['total_wins']
+    losses = dungeon['total_losses']
     if dungeons == 1:
         dungeonword = ' Dungeon'
     else:
@@ -129,122 +142,132 @@ def ping():
     util.sendmessage('Dungeon Bot MrDestructoid For a list of commands, type +commands')
 
 def register(username):
-    if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-        db.generalcollection.update_one( {'_id': 0}, {'$inc': {'dungeonlevel': 1} } )
-        db.usercollection.insert_one( {'_id': username, 'userlevel': 1, 'total_experience': 0, 'current_experience': 0, 'dungeons': 0, 'dungeon_wins': 0, 'dungeon_losses': 0, 'entered': 0, 'enteredTime': 0, 'dungeonTimeout': 0} )
-        util.queuemessage('DING PogChamp Dungeon Level [' + str(db.generalcollection.find_one( {'_id': 0 } )['dungeonlevel']) + ']')
+    user = db(opt.USERS).find_one_by_id(username)
+    if user == None:
+        db(opt.DUNGEONS).update_one(0, { '$inc': { 'dungeon_level': 1 } })
+        db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
+        user = db(opt.USERS).find_one_by_id(username)
+        util.queuemessage('DING PogChamp Dungeon Level [' + str(user['dungeon_level']) + ']')
     else:
         util.sendmessage(username + ', you are already a registered user! 4Head')
 
 def userexperience(username, message):
     if message == '+xp' or message == 'exp':
-        if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-            util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-        else:
-            util.sendmessage(username + "'s total experience: " + str(int(db.usercollection.find_one( {'_id': username } )['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
+        registered = util.checkuserregistered(username)
+        if registered:
+            user = db(opt.USERS).find_one_by_id(username)
+            util.sendmessage(username + "'s total experience: " + str(int(user['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
     else:
         targetuser = re.search('(?:xp|exp) (.*)', message)
         if targetuser:
             targetuser = targetuser.group(1)
             if targetuser.lower() == username.lower():
-                if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                    util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                else:
-                    util.sendmessage(username + "'s total experience: " + str(int(db.usercollection.find_one( {'_id': username } )['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
+                registered = util.checkuserregistered(username)
+                if registered:
+                    user = db(opt.USERS).find_one_by_id(username)
+                    util.sendmessage(username + "'s total experience: " + str(int(user['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
+                targetusername = re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE)
+                target = db(opt.USERS).find_one_by_id(targetusername)
                 if not util.checkusername(targetuser):
-                    if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                        util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                    else:
-                        util.sendmessage(username + "'s total experience: " + str(int(db.usercollection.find_one( {'_id': username } )['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
-                elif db.usercollection.count_documents( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) }, limit = 1) == 0:
-                    util.sendmessage(username + ', no experience found for that user!' + emoji.emojize(' :warning:', use_aliases=True))
+                    registered = util.checkuserregistered(username)
+                    if registered:
+                        user = db(opt.USERS).find_one_by_id(username)
+                        util.sendmessage(username + "'s total experience: " + str(int(user['total_experience'])) + emoji.emojize(' :diamonds:', use_aliases=True))
+                elif target:
+                    util.sendmessage(str(target['_id']) + '\'s total experience: ' + str(target['total_experience']) + emoji.emojize(' :diamonds:', use_aliases=True))
                 else:
-                    util.sendmessage(str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['_id']) + '\'s total experience: ' + str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['total_experience']) + emoji.emojize(' :diamonds:', use_aliases=True))
+                    util.sendmessage(username + ', no experience found for that user!' + emoji.emojize(' :warning:', use_aliases=True))
 
 def userlevel(username, message):
     if message == '+lvl' or message == '+level':
-        if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-            util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-        else:
-            util.sendmessage(username + "'s current level: [" + str(db.usercollection.find_one( {'_id': username } )['userlevel']) + '] - XP (' + str(int(db.usercollection.find_one( {'_id': username } )['current_experience'])) + ' / ' + str((((db.usercollection.find_one( {'_id': username } )['userlevel']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
+        registered = util.checkuserregistered(username)
+        if registered:
+            user = db(opt.USERS).find_one_by_id(username)
+            util.sendmessage(username + "'s current level: [" + str(user['user_level']) + '] - XP (' + str(int(user['current_experience'])) + ' / ' + str((((user['user_level']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
     else:
         targetuser = re.search('(?:lvl|level) (.*)', message)
         if targetuser:
             targetuser = targetuser.group(1)
             if targetuser.lower() == username.lower():
-                if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                    util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                else:
-                    util.sendmessage(username + "'s current level: [" + str(db.usercollection.find_one( {'_id': username } )['userlevel']) + '] - XP (' + str(int(db.usercollection.find_one( {'_id': username } )['current_experience'])) + ' / ' + str((((db.usercollection.find_one( {'_id': username } )['userlevel']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
+                registered = util.checkuserregistered(username)
+                if registered:
+                    user = db(opt.USERS).find_one_by_id(username)
+                    util.sendmessage(username + "'s current level: [" + str(user['user_level']) + '] - XP (' + str(int(user['current_experience'])) + ' / ' + str((((user['user_level']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
+                targetusername = re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE)
+                target = db(opt.USERS).find_one_by_id(targetusername)
                 if not util.checkusername(targetuser):
-                    if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                        util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                    else:
-                        util.sendmessage(username + "'s current level: [" + str(db.usercollection.find_one( {'_id': username } )['userlevel']) + '] - XP (' + str(int(db.usercollection.find_one( {'_id': username } )['current_experience'])) + ' / ' + str((((db.usercollection.find_one( {'_id': username } )['userlevel']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
-                elif db.usercollection.count_documents( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) }, limit = 1) == 0:
-                    util.sendmessage(username + ', no level found for that user!' + emoji.emojize (' :warning:'))
+                    registered = util.checkuserregistered(username)
+                    if registered:
+                        user = db(opt.USERS).find_one_by_id(username)
+                        util.sendmessage(username + "'s current level: [" + str(user['user_level']) + '] - XP (' + str(int(user['current_experience'])) + ' / ' + str((((user['user_level']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
+                elif target:
+                    util.sendmessage(str(target['_id']) + '\'s current level: [' + str(target['user_level']) + '] - XP (' + str(target['current_experience']) + ' / ' + str((((target['user_level']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
                 else:
-                    util.sendmessage(str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['_id']) + '\'s current level: [' + str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['userlevel']) + '] - XP (' + str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['current_experience']) + ' / ' + str((((db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['userlevel']) + 1)**2)*100) + ')' + emoji.emojize(' :diamonds:', use_aliases=True))
+                    util.sendmessage(username + ', no level found for that user!' + emoji.emojize (' :warning:'))
 
 def winrate(username, message):
     if message == '+winrate':
-        if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-            util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-        elif db.usercollection.find_one( {'_id': username } )['dungeons'] == 0:
-            util.sendmessage(username + ", you haven't entered any dungeons NotLikeThis")
-        else:
-            dungeons = db.usercollection.find_one( {'_id': username } )['dungeons']
-            wins = db.usercollection.find_one( {'_id': username } )['dungeon_wins']
-            losses = db.usercollection.find_one( {'_id': username } )['dungeon_losses']
+        registered = util.checkuserregistered(username)
+        if registered:
+            user = db(opt.USERS).find_one_by_id(username)
+            if user['dungeons'] == 0:
+                util.sendmessage(username + ", you haven't entered any dungeons NotLikeThis")
+            else:
+                dungeons = user['dungeons']
+                wins = user['dungeon_wins']
+                losses = user['dungeon_losses']
 
-            if wins == 1:
-                winword = ' Win'
-            else:
-                winword = ' Wins'
-            if losses == 1:
-                loseword = ' Loss'
-            else:
-                loseword = ' Losses'
-            util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                if wins == 1:
+                    winword = ' Win'
+                else:
+                    winword = ' Wins'
+                if losses == 1:
+                    loseword = ' Loss'
+                else:
+                    loseword = ' Losses'
+                util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
     else:
         targetuser = re.search('winrate (.*)', message)
         if targetuser:
             targetuser = targetuser.group(1)
             if (targetuser.lower() == username.lower()) or not util.checkusername(targetuser):
-                if db.usercollection.count_documents({'_id': username}, limit = 1) == 0:
-                    util.sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
-                elif db.usercollection.find_one( {'_id': username } )['dungeons'] == 0:
-                    util.sendmessage(username + ", you haven't entered any dungeons NotLikeThis")
-                else:
-                    dungeons = db.usercollection.find_one( {'_id': username} )['dungeons']
-                    wins = db.usercollection.find_one( {'_id': username} )['dungeon_wins']
-                    losses = db.usercollection.find_one( {'_id': username} )['dungeon_losses']
-                    if wins == 1:
-                        winword = ' Win'
+                registered = util.checkuserregistered(username)
+                if registered:
+                    user = db(opt.USERS).find_one_by_id(username)
+                    if user['dungeons'] == 0:
+                        util.sendmessage(username + ", you haven't entered any dungeons NotLikeThis")
                     else:
-                        winword = ' Wins'
-                    if losses == 1:
-                        loseword = ' Loss'
-                    else:
-                        loseword = ' Losses'
-                    util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                        dungeons = user['dungeons']
+                        wins = user['dungeon_wins']
+                        losses = user['dungeon_losses']
+                        if wins == 1:
+                            winword = ' Win'
+                        else:
+                            winword = ' Wins'
+                        if losses == 1:
+                            loseword = ' Loss'
+                        else:
+                            loseword = ' Losses'
+                        util.sendmessage(username + "'s winrate: " + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
             else:
-                if db.usercollection.count_documents( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) }, limit = 1) == 0:
-                    util.sendmessage(username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True))
-                elif db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeons'] == 0:
-                    util.sendmessage(username + ", that user hasn't entered any dungeons NotLikeThis")
-                else:
-                    dungeons = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeons']
-                    wins = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeon_wins']
-                    losses = db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['dungeon_losses']
-                    if wins == 1:
-                        winword = ' Win'
+                targetusername = re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE)
+                registered = util.checkuserregistered(targetusername)
+                if registered:
+                    target = db(opt.USERS).find_one_by_id(targetusername)
+                    if target['dungeons'] == 0:
+                        util.sendmessage(username + ", that user hasn't entered any dungeons NotLikeThis")
                     else:
-                        winword = ' Wins'
-                    if losses == 1:
-                        loseword = ' Loss'
-                    else:
-                        loseword = ' Losses'
-                    util.sendmessage(str(db.usercollection.find_one( {'_id': re.compile('^' + re.escape(targetuser) + '$', re.IGNORECASE) } )['_id']) + '\'s winrate: ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))
+                        dungeons = target['dungeons']
+                        wins = target['dungeon_wins']
+                        losses = target['dungeon_losses']
+                        if wins == 1:
+                            winword = ' Win'
+                        else:
+                            winword = ' Wins'
+                        if losses == 1:
+                            loseword = ' Loss'
+                        else:
+                            loseword = ' Losses'
+                        util.sendmessage(str(target['_id']) + '\'s winrate: ' + str(wins) + winword +' / ' + str(losses) + loseword + ' = ' + str((((wins)/(dungeons))*100)) + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True))

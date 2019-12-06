@@ -48,6 +48,7 @@ def floodprotection():
         if floodcounter > 0:
             time.sleep(3)
             floodcounter = 0
+        time.sleep(1)
 
 floodprotectionthread = threading.Thread(target = floodprotection)
 floodprotectionthread.start()

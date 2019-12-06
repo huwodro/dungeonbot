@@ -84,7 +84,6 @@ sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
 def start():
-    db(opt.GENERAL).update_one(0, {'$set': {'commit': '0'} }, upsert=True)
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
@@ -100,7 +99,7 @@ def start():
         db(opt.GENERAL).update_one(0, { '$set': { 'commit': sha[0:7] } } )
         repo.git.reset('--hard')
         repo.remotes.origin.pull()
-        # os.system('kill %d' % os.getpid())
+        os.system('kill %d' % os.getpid())
     sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
 
 def whisper(user, message):

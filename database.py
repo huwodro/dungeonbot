@@ -10,13 +10,6 @@ TAGS = 'UserTags'
 client = MongoClient(auth.db_host, auth.db_port)
 db = client['Twitch']
 
-r = db['UserStats'].find()
-
-l = list(r)
-file = open("collection.json", "w")
-file.write(dumps(l))
-file.close()
-
 class MongoDatabase:
   def __init__(self, collection):
     self.collection = collection

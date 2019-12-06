@@ -78,11 +78,10 @@ def enterdungeon(username, message):
                 }})
                 user_calculated_experience = user['current_experience'] + experiencegain
                 if (((userlevel+1)**2)*100) - user_calculated_experience <= 0:
-                    while (((user['user_level']+1)**2)*100) - user_calculated_experience <= 0:
-                        db(opt.USERS).update_one(username, {'$inc': {
-                            'user_level': 1,
-                            'current_experience': -(((user['user_level'])**2)*100)
-                        }})
+                    db(opt.USERS).update_one(username, {'$inc': {
+                        'user_level': 1,
+                        'current_experience': -(((user['user_level']+1)**2)*100)
+                    }})
                     util.queuemessage(username + ' just leveled up! Level - [' + str(user['user_level'] + 1) + '] PogChamp')
             else:
                 db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })

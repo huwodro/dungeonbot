@@ -84,9 +84,6 @@ sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
 def start():
-    db(opt.USERS).update_one('Teodorv', { '$set': { 'user_level': 12, 'current_experience': 1091 }})
-    db(opt.USERS).update_one('gofur', { '$set': { 'user_level': 4, 'current_experience': 148 }})
-    db(opt.USERS).update_one('ABCDEMLG', { '$set': { 'user_level': 3, 'current_experience': 182 }})
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)

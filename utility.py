@@ -12,6 +12,7 @@ import git
 import auth
 import database as opt
 import schemes
+import messages
 
 db = opt.MongoDatabase
 
@@ -57,8 +58,18 @@ def queuemessage(message):
     msg = 'PRIVMSG ' + auth.channel + ' :' + message
     messagequeue.put(msg)
 
+last_time_symbol = 0
+def get_cooldown_bypass_symbol():
+    global last_time_symbol
+    if last_time_symbol == 0:
+        last_time_symbol = 1
+        return ''
+    else:
+        last_time_symbol = 0
+        return '\U000e0000'
+
 def sendmessage(message):
-    msg = 'PRIVMSG ' + auth.channel + ' :' + message
+    msg = 'PRIVMSG ' + auth.channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
 
 def sendmessagequeue():
@@ -81,28 +92,33 @@ def start():
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
     db(opt.GENERAL).update_one(0, { '$set': { 'commit': sha[0:7] } } )
-    sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
+    sendmessage(messages.startup_message(branch, sha))
 
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)
 
 def checkuserregistered(username, req=None):
     user = db(opt.USERS).find_one_by_id(username)
-    if user == None:
-        sameuser = req == username if req != None else True
-        if sameuser:
-            sendmessage(username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True))
+    sameuser = req == username if req is not None else True
+
+    if sameuser:
+        if user:
+            return True
         else:
-            sendmessage(username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True))
-        return False
+            sendmessage(messages.you_not_registered(username))
     else:
-        return True
+        target = db(opt.USERS).find_one_by_id(req)
+        if target:
+            return True
+        else:
+            sendmessage(messages.user_not_registered(username))
+    return False
 
 ### Admin Commands ###
 
 def resetcd(username):
     admin = db(opt.TAGS).find_one_by_id(username)
-    if admin != None and admin['admin'] == 1:
+    if admin is not None and admin['admin'] == 1:
         for user in db.raw[opt.USERS].find():
             db(opt.USERS).update_one(user['_id'], { '$set': {
                 'entered': 0,
@@ -113,7 +129,7 @@ def resetcd(username):
 
 def restart(username):
     admin = db(opt.TAGS).find_one_by_id(username)
-    if admin != None and admin['admin'] == 1:
+    if admin is not None and admin['admin'] == 1:
         repo = git.Repo(search_parent_directories=True)
         repo.git.reset('--hard')
         repo.remotes.origin.pull()
@@ -121,7 +137,7 @@ def restart(username):
 
 def usertag(username, message):
     admin = db(opt.TAGS).find_one_by_id(username)
-    if admin != None and admin['admin'] == 1:
+    if admin is not None and admin['admin'] == 1:
         target = re.search('tag (.*)', message)
         if target:
             taglist = ['admin', 'moderator']

@@ -131,9 +131,9 @@ def dungeonstats():
     else:
         loseword = ' Losses'
     if dungeons is not 0:
-        util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses),loseword, str(round((((wins)/(dungeons))*100), 3))))
+        util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, str(round((((wins)/(dungeons))*100), 3))))
     else:
-        util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses),loseword, '0'))
+        util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, '0'))
 
 def dungeonstatus():
     uptime = time.time()
@@ -257,7 +257,7 @@ def winrate(username, message):
                 registered = util.checkuserregistered(username, targetusername)
                 if registered:
                     target = db(opt.USERS).find_one_by_id(targetusername)
-                    if target is not None and target['dungeons'] == 0:
+                    if target is not None and target['dungeons'] is 0:
                         util.sendmessage(messages.user_no_entered_dungeons(username))
                     else:
                         dungeons = target['dungeons']

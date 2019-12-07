@@ -176,7 +176,7 @@ def userexperience(username, message):
                         user = db(opt.USERS).find_one_by_id(username)
                         util.sendmessage(messages.user_experience(username, str(user['total_experience'])))
                 elif target:
-                    util.sendmessage(messages.user_experience(str(target['_id']), str(target['total_experience'])))
+                    util.sendmessage(messages.user_experience(target['_id'], str(target['total_experience'])))
                 else:
                     util.sendmessage(messages.user_no_experience(username))
 

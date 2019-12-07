@@ -80,13 +80,7 @@ def start():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
-    dungeon = db(opt.GENERAL).find_one_by_id(0)
-    commit = dungeon['commit']
-    if commit != sha[0:7]:
-        db(opt.GENERAL).update_one(0, { '$set': { 'commit': sha[0:7] } } )
-        repo.git.reset('--hard')
-        repo.remotes.origin.pull()
-        os.system('kill %d' % os.getpid())
+    db(opt.GENERAL).update_one(0, { '$set': { 'commit': sha[0:7] } } )
     sendmessage(emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')')
 
 def whisper(user, message):
@@ -120,6 +114,9 @@ def resetcd(username):
 def restart(username):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin != None and admin['admin'] == 1:
+        repo = git.Repo(search_parent_directories=True)
+        repo.git.reset('--hard')
+        repo.remotes.origin.pull()
         os.system('kill %d' % os.getpid())
 
 def usertag(username, message):

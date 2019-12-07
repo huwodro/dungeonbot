@@ -65,9 +65,9 @@ def enterdungeon(username, message):
                     normalrunquality = random.randint(75,126)
                     experiencegain = int(experiencegain*normalrunquality*0.01)
                     if normalrunquality < 100:
-                        util.sendmessage(messages.dungeon_bad_run(username, round(normalrunquality*0.01, 2), str(levelrun), str(experiencegain)))
+                        util.sendmessage(messages.dungeon_bad_run(username, str(round(normalrunquality*0.01, 2)), str(levelrun), str(experiencegain)))
                     else:
-                        util.sendmessage(messages.dungeon_good_run(username, round(normalrunquality*0.01, 2), str(levelrun), str(experiencegain)))
+                        util.sendmessage(messages.dungeon_good_run(username, str(round(normalrunquality*0.01, 2)), str(levelrun), str(experiencegain)))
                 db(opt.USERS).update_one(username, {'$inc': {
                     'total_experience': experiencegain,
                     'current_experience': experiencegain,

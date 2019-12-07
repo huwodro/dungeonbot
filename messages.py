@@ -8,22 +8,22 @@ def startup_message (branch, sha):
   return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
 
 def dungeon_too_low_level(username, dungeonlevel):
-  return username + ', the Dungeon [' + str(dungeonlevel) + "] is too low level for you to enter. You won't gain any experience " + emoji.emojize(':crossed_swords:', use_aliases=True)
+  return username + ', the Dungeon [' + dungeonlevel + "] is too low level for you to enter. You won't gain any experience " + emoji.emojize(':crossed_swords:', use_aliases=True)
 
 def dungeon_very_bad_run (username, levelrun, experiencegain):
-  return username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp'
+  return username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
 
 def dungeon_very_good_run (username, levelrun, experiencegain):
-  return username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp'
+  return username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
 
 def dungeon_bad_run (username, normalrunquality, levelrun, experiencegain):
-  return username + ' | Bad Run [x' + str(normalrunquality) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp'
+  return username + ' | Bad Run [x' + normalrunquality + '] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
 
 def dungeon_good_run (username, normalrunquality, levelrun, experiencegain):
-  return username + ' | Good Run [x' + str(normalrunquality) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp'
+  return username + ' | Good Run [x' + normalrunquality + '] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
 
 def dungeon_failed (username, levelrun):
-  return username + ', you failed to beat the dungeon level [' + str(levelrun) + '] - No experience gained FeelsBadMan'
+  return username + ', you failed to beat the dungeon level [' + levelrun + '] - No experience gained FeelsBadMan'
 
 def dungeon_already_entered (username, timeremaining):
   return username + ', you have already entered the dungeon recently, ' + timeremaining + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True)

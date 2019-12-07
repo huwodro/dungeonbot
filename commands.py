@@ -56,17 +56,17 @@ def enterdungeon(username, message):
                 rarerunquality = random.randint(1, 101)
                 if rarerunquality <= 10:
                     experiencegain = int(experiencegain*0.5)
-                    util.queuemessage(username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
+                    util.sendmessage(username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                 elif rarerunquality >= 90:
                     experiencegain = int(experiencegain*1.5)
-                    util.queuemessage(username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
+                    util.sendmessage(username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                 else:
                     normalrunquality = random.randint(75,126)
                     experiencegain = int(experiencegain*normalrunquality*0.01)
                     if normalrunquality < 100:
-                        util.queuemessage(username + ' | Bad Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
+                        util.sendmessage(username + ' | Bad Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                     else:
-                        util.queuemessage(username + ' | Good Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
+                        util.sendmessage(username + ' | Good Run [x' + str(round(normalrunquality*0.01, 2)) + '] - You beat the dungeon level [' + str(levelrun) + '] - Experience Gained: ' + str(experiencegain) + ' PogChamp')
                 db(opt.USERS).update_one(username, {'$inc': {
                     'total_experience': experiencegain,
                     'current_experience': experiencegain,
@@ -82,11 +82,12 @@ def enterdungeon(username, message):
                         'user_level': 1,
                         'current_experience': -(((user['user_level']+1)**2)*100)
                     }})
-                    util.queuemessage(username + ' just leveled up! Level - [' + str(user['user_level'] + 1) + '] PogChamp')
+                    time.sleep(1)
+                    util.sendmessage(username + ' just leveled up! Level - [' + str(user['user_level'] + 1) + '] PogChamp')
             else:
                 db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })
                 db(opt.GENERAL).update_one(0, { '$inc': { 'total_losses': 1 } })
-                util.queuemessage(username + ', you failed to beat the dungeon level [' + str(levelrun) + '] - No experience gained FeelsBadMan')
+                util.sendmessage(username + ', you failed to beat the dungeon level [' + str(levelrun) + '] - No experience gained FeelsBadMan')
             db(opt.USERS).update_one(username, { '$inc': { 'dungeons': 1 } })
             db(opt.GENERAL).update_one(0, { '$inc': { 'total_dungeons': 1 } })
         else:
@@ -146,7 +147,7 @@ def register(username):
         db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
         dungeon = db(opt.GENERAL).find_one_by_id(0)
-        util.queuemessage('DING PogChamp Dungeon Level [' + str(dungeon['dungeon_level']) + ']')
+        util.sendmessage('DING PogChamp Dungeon Level [' + str(dungeon['dungeon_level']) + ']')
     else:
         util.sendmessage(username + ', you are already a registered user! 4Head')
 

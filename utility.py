@@ -15,7 +15,6 @@ import schemes
 
 db = opt.MongoDatabase
 
-floodcounter = 0
 messagequeue = queue.Queue()
 opendungeonlock = threading.Lock()
 
@@ -42,17 +41,6 @@ def checkusername(user):
     else:
         return
 
-def floodprotection():
-    global floodcounter
-    while True:
-        if floodcounter > 0:
-            time.sleep(3)
-            floodcounter = 0
-        time.sleep(1)
-
-floodprotectionthread = threading.Thread(target = floodprotection)
-floodprotectionthread.start()
-
 def opendungeon(username):
     opendungeonlock.acquire()
     db(opt.USERS).update_one(username, {'$set': {
@@ -70,16 +58,14 @@ def queuemessage(message):
     messagequeue.put(msg)
 
 def sendmessage(message):
-    global floodcounter
-    if messagequeue.empty():
-        msg = 'PRIVMSG ' + auth.channel + ' :' + message
-        sock.send((msg + '\r\n').encode('utf-8'))
-        floodcounter += 1
+    msg = 'PRIVMSG ' + auth.channel + ' :' + message
+    sock.send((msg + '\r\n').encode('utf-8'))
 
 def sendmessagequeue():
     while True:
-        time.sleep(1.25)
-        sock.send((messagequeue.get() + '\r\n').encode('utf-8'))
+        time.sleep(1)
+        if not messagequeue.empty():
+            sock.send((messagequeue.get() + '\r\n').encode('utf-8'))
 
 sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()

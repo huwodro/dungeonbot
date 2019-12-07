@@ -12,6 +12,8 @@ import database as opt
 import schemes
 
 db = opt.MongoDatabase
+cmdusetime = time.time()
+messagedelay = 2.5
 
 def livecheck():
     while True:
@@ -44,40 +46,51 @@ while True:
             message = message.group(2).strip()
 
             if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
-                if util.floodcounter == 0:
+                if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():
 
                     if (message == '+commands' or message == '+help'):
                         cmd.commands()
+                        cmdusetime = time.time()
 
                     if message == '+enterdungeon' or message == '+ed':
                         cmd.enterdungeon(username, message)
+                        cmdusetime = time.time()
 
                     if (message == '+dungeonlvl' or message == '+dungeonlevel'):
                         cmd.dungeonlvl()
+                        cmdusetime = time.time()
 
                     if message == '+dungeonmaster':
                         cmd.dungeonmaster()
+                        cmdusetime = time.time()
 
                     if message == '+dungeonstats':
                         cmd.dungeonstats()
+                        cmdusetime = time.time()
 
                     if message == '+dungeonstatus':
                         cmd.dungeonstatus()
+                        cmdusetime = time.time()
 
                     if (message == '!ping' or message == '+ping'):
                         cmd.ping()
+                        cmdusetime = time.time()
 
                     if message == '+register':
                         cmd.register(username)
+                        cmdusetime = time.time()
 
                     if (message.startswith('+xp') or message.startswith('+exp')):
                         cmd.userexperience(username, message)
+                        cmdusetime = time.time()
 
                     if (message.startswith('+lvl') or message.startswith('+level')):
                         cmd.userlevel(username, message)
+                        cmdusetime = time.time()
 
                     if message.startswith('+winrate'):
                         cmd.winrate(username, message)
+                        cmdusetime = time.time()
 
             if message.startswith('+tag'):
                 util.usertag(username, message)

@@ -49,7 +49,7 @@ def dungeon_level_up (dungeonlevel):
   return 'DING PogChamp Dungeon Level [' + dungeonlevel + ']'
 
 def user_level_up (username, userlevel):
-  return username + ' just leveled up! Level - [' + userlevel + '] PogChamp'
+  return username + ' just leveled up! Level [' + userlevel + '] PogChamp'
 
 def user_already_registered (username):
   return username + ', you are already a registered user! 4Head'

@@ -14,6 +14,7 @@ import schemes
 db = opt.MongoDatabase
 cmdusetime = time.time()
 messagedelay = 2.5
+botprefix = '+'
 
 def livecheck():
     while True:
@@ -33,7 +34,7 @@ util.start()
 
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-
+    
     if resp.startswith('PING'):
         util.pong()
 
@@ -45,58 +46,73 @@ while True:
         if message:
             message = message.group(2).strip()
 
-            if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
-                if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():
+            if message.startswith(botprefix):
+                params = message[1:].split(' ')
 
-                    if (message == '+commands' or message == '+help'):
-                        cmd.commands()
-                        cmdusetime = time.time()
+                if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
+                    if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():
 
-                    if message == '+enterdungeon' or message == '+ed':
-                        cmd.enterdungeon(username, message)
-                        cmdusetime = time.time()
+                        if params[0] == 'commands' or params[0] == 'help':
+                            cmd.commands()
+                            cmdusetime = time.time()
 
-                    if (message == '+dungeonlvl' or message == '+dungeonlevel'):
-                        cmd.dungeonlvl()
-                        cmdusetime = time.time()
+                        if params[0] == 'enterdungeon' or params[0] == 'ed':
+                            cmd.enterdungeon(username, message)
+                            cmdusetime = time.time()
 
-                    if message == '+dungeonmaster':
-                        cmd.dungeonmaster()
-                        cmdusetime = time.time()
+                        if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
+                            cmd.dungeonlvl()
+                            cmdusetime = time.time()
 
-                    if message == '+dungeonstats':
-                        cmd.dungeonstats()
-                        cmdusetime = time.time()
+                        if params[0] == 'dungeonmaster' or params[0] == 'dm':
+                            cmd.dungeonmaster()
+                            cmdusetime = time.time()
 
-                    if message == '+dungeonstatus':
-                        cmd.dungeonstatus()
-                        cmdusetime = time.time()
+                        if params[0] == 'dungeonstats':
+                            cmd.dungeonstats()
+                            cmdusetime = time.time()
 
-                    if (message == '!ping' or message == '+ping'):
-                        cmd.ping()
-                        cmdusetime = time.time()
+                        if params[0] == 'dungeonstatus':
+                            cmd.dungeonstatus()
+                            cmdusetime = time.time()
 
-                    if message == '+register':
-                        cmd.register(username)
-                        cmdusetime = time.time()
+                        if params[0] == 'ping':
+                            cmd.ping()
+                            cmdusetime = time.time()
 
-                    if (message.startswith('+xp') or message.startswith('+exp')):
-                        cmd.userexperience(username, message)
-                        cmdusetime = time.time()
+                        if params[0] == 'register':
+                            cmd.register(username)
+                            cmdusetime = time.time()
 
-                    if (message.startswith('+lvl') or message.startswith('+level')):
-                        cmd.userlevel(username, message)
-                        cmdusetime = time.time()
+                        if params[0] == 'xp' or params[0] == 'exp':
+                            try:
+                                cmd.userexperience(username, params[1])
+                            except IndexError:
+                                cmd.userexperience(username)
+                            cmdusetime = time.time()
 
-                    if message.startswith('+winrate'):
-                        cmd.winrate(username, message)
-                        cmdusetime = time.time()
+                        if params[0] == 'lvl' or params[0] == 'level':
+                            try:
+                                cmd.userlevel(username, params[1])
+                            except IndexError:
+                                cmd.userlevel(username)
+                            cmdusetime = time.time()
 
-            if message.startswith('+tag'):
-                util.usertag(username, message)
+                        if params[0] == 'winrate':
+                            try:
+                                cmd.winrate(username, params[1])
+                            except IndexError:
+                                cmd.winrate(username)
+                            cmdusetime = time.time()
 
-            if message == '+resetcd':
-                util.resetcd(username)
+                if params[0] == 'tag':
+                    try:
+                        util.usertag(username, params[1], params[2])
+                    except IndexError as e:
+                        util.queuemessage(emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>')
 
-            if message == '+restart':
-                util.restart(username)
+                if params[0] == 'resetcd':
+                    util.resetcd(username)
+
+                if params[0] == 'restart':
+                    util.restart(username)

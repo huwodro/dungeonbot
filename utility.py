@@ -66,7 +66,7 @@ def get_cooldown_bypass_symbol():
         return ''
     else:
         last_time_symbol = 0
-        return '\U000e0000'
+        return ' \U000e0000'
 
 def sendmessage(message):
     msg = 'PRIVMSG ' + auth.channel + ' :' + message + get_cooldown_bypass_symbol()
@@ -125,7 +125,7 @@ def resetcd(username):
                 'last_entry': 0,
                 'next_entry': 0
             }})
-        queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:'))
+        queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True))
 
 def restart(username):
     admin = db(opt.TAGS).find_one_by_id(username)
@@ -135,15 +135,12 @@ def restart(username):
         repo.remotes.origin.pull()
         os.system('kill %d' % os.getpid())
 
-def usertag(username, message):
+def usertag(username, target, tag):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
-        target = re.search('tag (.*)', message)
-        if target:
-            taglist = ['admin', 'moderator']
-            target = target.group(1).split()
-            username = checkusername(target[0])
-            if username:
-                if target[1]:
-                    if target[1].lower() in taglist:
-                        db(opt.TAGS).update_one(username, {'$set': {target[1].lower(): 1} }, upsert=True)
+        taglist = ['admin', 'moderator']
+        user = checkusername(target)
+        if user:
+            if tag.lower() in taglist:
+                db(opt.TAGS).update_one(user, {'$set': {tag.lower(): 1} }, upsert=True)
+                queuemessage(user + ' set to ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True))

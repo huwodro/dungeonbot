@@ -52,7 +52,7 @@ def opendungeon(username):
     opendungeonlock.release()
 
 def pong():
-    sock.send("PONG\n".encode('utf-8'))
+    sock.send(('PONG :tmi.twitch.tv\r\n').encode('utf-8'))
 
 def queuemessage(message):
     msg = 'PRIVMSG ' + auth.channel + ' :' + message

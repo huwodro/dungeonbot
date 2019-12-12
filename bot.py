@@ -34,7 +34,7 @@ util.start()
 
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-    
+
     if resp.startswith('PING'):
         util.pong()
 
@@ -104,6 +104,12 @@ while True:
                             except IndexError:
                                 cmd.winrate(username)
                             cmdusetime = time.time()
+
+                if params[0] == 'eval':
+                    util.runeval(username, message[6:])
+
+                if params[0] == 'exec':
+                    util.runexec(username, message[6:])
 
                 if params[0] == 'tag':
                     try:

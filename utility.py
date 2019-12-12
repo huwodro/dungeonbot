@@ -116,6 +116,22 @@ def checkuserregistered(username, req=None):
 
 ### Admin Commands ###
 
+def runeval(username, expression):
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin is not None and admin['admin'] == 1:
+        try:
+            queuemessage(str(eval(expression)))
+        except Exception as e:
+            queuemessage(emoji.emojize(':x: ', use_aliases=True) + str(e))
+
+def runexec(username, code):
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin is not None and admin['admin'] == 1:
+        try:
+            exec(code)
+        except Exception as e:
+            queuemessage(emoji.emojize(':x: ', use_aliases=True) + str(e))
+
 def resetcd(username):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:

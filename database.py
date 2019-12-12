@@ -7,7 +7,10 @@ GENERAL = 'General'
 USERS = 'UserStats'
 TAGS = 'UserTags'
 
-client = MongoClient(auth.db_host, auth.db_port)
+if auth.authentication:
+    client = MongoClient('mongodb://' + auth.db_user + ':' + auth.db_pwd + '@' + auth.db_host + ':' + str(auth.db_port) + '/')
+else:
+    client = MongoClient(auth.db_host, auth.db_port)
 db = client['Twitch']
 
 class MongoDatabase:

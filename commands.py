@@ -82,7 +82,7 @@ def enterdungeon(username, message):
                         'user_level': 1,
                         'current_experience': -(((user['user_level']+1)**2)*100)
                     }})
-                    time.sleep(1)
+                    time.sleep(1.5)
                     util.sendmessage(messages.user_level_up(username, str(user['user_level'] + 1)))
             else:
                 db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })

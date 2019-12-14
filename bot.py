@@ -32,9 +32,17 @@ livecheckthread.start()
 
 util.start()
 
+def serverping():
+    while True:
+        util.ping()
+        time.sleep(120)
+
+serverpingthread = threading.Thread(target = serverping)
+serverpingthread.start()
+
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-
+    
     if resp.startswith('PING'):
         util.pong()
 

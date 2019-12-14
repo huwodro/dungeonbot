@@ -51,6 +51,9 @@ def opendungeon(username):
     }})
     opendungeonlock.release()
 
+def ping():
+    sock.send(('PING :tmi.twitch.tv\r\n').encode('utf-8'))
+
 def pong():
     sock.send(('PONG :tmi.twitch.tv\r\n').encode('utf-8'))
 

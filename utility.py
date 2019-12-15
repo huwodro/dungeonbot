@@ -22,12 +22,16 @@ opendungeonlock = threading.Lock()
 server = 'irc.chat.twitch.tv'
 port = 6667
 
-sock = socket.socket()
-sock.connect((server, port))
-sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
-sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
-sock.send(('JOIN ' + auth.channel + '\r\n').encode('utf-8'))
-sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+def connect():
+    global sock
+    sock = socket.socket()
+    sock.connect((server, port))
+    sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
+    sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
+    sock.send(('JOIN ' + auth.channel + '\r\n').encode('utf-8'))
+    sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+
+connect()
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
@@ -51,11 +55,8 @@ def opendungeon(username):
     }})
     opendungeonlock.release()
 
-def ping():
-    sock.send(('PING :tmi.twitch.tv\r\n').encode('utf-8'))
-
 def pong():
-    sock.send(('PONG :tmi.twitch.tv\r\n').encode('utf-8'))
+    sock.send(('PONG\r\n').encode('utf-8'))
 
 def queuemessage(message):
     msg = 'PRIVMSG ' + auth.channel + ' :' + message

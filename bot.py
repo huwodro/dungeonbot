@@ -50,7 +50,7 @@ while True:
             message = message.group(2).strip()
 
             if message.startswith(botprefix):
-                params = message[1:].split(' ')
+                params = message[1:].casefold().split(' ')
 
                 if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
                     if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():

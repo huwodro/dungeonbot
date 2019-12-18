@@ -10,22 +10,30 @@ import utility as util
 import commands as cmd
 import database as opt
 import schemes
+import messages
 
 db = opt.MongoDatabase
-cmdusetime = time.time()
+db(opt.CHANNELS).update_one(auth.defaultchannel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 messagedelay = 2.5
 botprefix = '+'
 
 def livecheck():
     while True:
+        onlinechannels = []
         headers = { 'Client-ID': auth.clientID }
-        params = (('user_login', auth.channelname),)
+        params = []
+        for channel in db.raw[opt.CHANNELS].find():
+            tuple = ('user_login', channel['_id'])
+            params.append(tuple)
         response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
-        if not response['data']:
-            db(opt.GENERAL).update_one(0, { '$set': { 'open': 1 } })
-        else:
-            db(opt.GENERAL).update_one(0, { '$set': { 'open': 0 } })
-        time.sleep(5)
+        for online in response['data']:
+            onlinechannels.append(online['user_name'].lower())
+        for channel in db.raw[opt.CHANNELS].find():
+            if channel['_id'] in onlinechannels:
+                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'online': 1 } }, upsert=True)
+            else:
+                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'online': 0 } }, upsert=True)
+        time.sleep(10)
 
 livecheckthread = threading.Thread(target = livecheck)
 livecheckthread.start()
@@ -34,7 +42,7 @@ util.start()
 
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-
+    print(resp)
     if len(resp) == 0:
         util.connect()
 
@@ -45,6 +53,9 @@ while True:
         username = re.search('display-name=(.+?);', resp)
         if username:
             username = username.group(1)
+        channel = re.search('( PRIVMSG #(.+?) )', resp)
+        if channel:
+            channel = channel.group(2)
         message = re.search(r':(.*)\s:(.*)', resp)
         if message:
             message = message.group(2).strip()
@@ -52,76 +63,92 @@ while True:
             if message.startswith(botprefix):
                 params = message[1:].casefold().split(' ')
 
-                if db(opt.GENERAL).find_one_by_id(0)['open'] == 1:
+                if db(opt.CHANNELS).find_one_by_id(channel)['online'] == 0:
+                    cmdusetime = db(opt.CHANNELS).find_one_by_id(channel)['cmdusetime']
                     if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():
 
                         if params[0] == 'commands' or params[0] == 'help':
-                            cmd.commands()
-                            cmdusetime = time.time()
+                            cmd.commands(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'enterdungeon' or params[0] == 'ed':
-                            cmd.enterdungeon(username, message)
-                            cmdusetime = time.time()
+                            cmd.enterdungeon(username, message, channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
-                            cmd.dungeonlvl()
-                            cmdusetime = time.time()
+                            cmd.dungeonlvl(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonmaster' or params[0] == 'dm':
-                            cmd.dungeonmaster()
-                            cmdusetime = time.time()
+                            cmd.dungeonmaster(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonstats':
-                            cmd.dungeonstats()
-                            cmdusetime = time.time()
+                            cmd.dungeonstats(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonstatus':
-                            cmd.dungeonstatus()
-                            cmdusetime = time.time()
+                            cmd.dungeonstatus(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'ping':
-                            cmd.ping()
-                            cmdusetime = time.time()
+                            cmd.ping(channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'register':
-                            cmd.register(username)
-                            cmdusetime = time.time()
+                            cmd.register(username, channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'xp' or params[0] == 'exp':
                             try:
-                                cmd.userexperience(username, params[1])
+                                cmd.userexperience(username, channel, params[1])
                             except IndexError:
-                                cmd.userexperience(username)
-                            cmdusetime = time.time()
+                                cmd.userexperience(username, channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'lvl' or params[0] == 'level':
                             try:
-                                cmd.userlevel(username, params[1])
+                                cmd.userlevel(username, channel, params[1])
                             except IndexError:
-                                cmd.userlevel(username)
-                            cmdusetime = time.time()
+                                cmd.userlevel(username, channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'winrate':
                             try:
-                                cmd.winrate(username, params[1])
+                                cmd.winrate(username, channel, params[1])
                             except IndexError:
-                                cmd.winrate(username)
-                            cmdusetime = time.time()
+                                cmd.winrate(username, channel)
+                            db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+
+                if params[0] == 'add':
+                    try:
+                        util.joinchannel(username, channel, params[1])
+                    except IndexError as e:
+                        util.queuemessage(messages.channel_error(), channel)
+
+                if params[0] == 'part':
+                    try:
+                        util.partchannel(username, params[1])
+                    except IndexError as e:
+                        util.queuemessage(messages.channel_error(), channel)
+
+                if params[0] == 'channels':
+                    util.listchannels(username, channel)
 
                 if params[0] == 'eval':
-                    util.runeval(username, message[6:])
+                    util.runeval(username, channel, message[6:])
 
                 if params[0] == 'exec':
-                    util.runexec(username, message[6:])
+                    util.runexec(username, channel, message[6:])
 
                 if params[0] == 'tag':
                     try:
-                        util.usertag(username, params[1], params[2])
+                        util.usertag(username, channel, params[1], params[2])
                     except IndexError as e:
-                        util.queuemessage(emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>')
+                        util.queuemessage(messages.tag_error(), channel)
 
                 if params[0] == 'resetcd':
-                    util.resetcd(username)
+                    util.resetcd(username, channel)
 
                 if params[0] == 'restart':
                     util.restart(username)

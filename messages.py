@@ -80,3 +80,30 @@ def you_not_registered (username):
 
 def user_not_registered (username):
   return username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True)
+
+def join_channel_error (channel):
+    return emoji.emojize(':x: ', use_aliases=True) + 'channel ' + channel + ' does not exist'
+
+def leaving_channel (name):
+    return emoji.emojize(':rewind:', use_aliases=True) + ' Leaving ' + name + ' FeelsBadMan'
+
+def list_channels (list):
+    return '[' + ', '.join(list) + ']'
+
+def reset_cooldown():
+    return 'Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True)
+
+def tag_message (user, tag):
+    return user + ' set to ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True)
+
+def error_message (error):
+    return emoji.emojize(':x: ', use_aliases=True) + str(error)
+
+def channel_error ():
+    return emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +channel <name>'
+
+def tag_error ():
+    return emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>'
+
+def restart_message():
+    return emoji.emojize(':arrows_counterclockwise:', use_aliases=True) + ' Restarting...'

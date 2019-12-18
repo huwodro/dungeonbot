@@ -6,6 +6,7 @@ from bson.json_util import dumps
 GENERAL = 'General'
 USERS = 'UserStats'
 TAGS = 'UserTags'
+CHANNELS = 'Channels'
 
 if auth.authentication:
     client = MongoClient('mongodb://' + auth.db_user + ':' + auth.db_pwd + '@' + auth.db_host + ':' + str(auth.db_port) + '/')
@@ -21,6 +22,9 @@ class MongoDatabase:
 
   def find_one(self, f=None, *args, **options):
     return db[self.collection].find_one(f, *args, **options)
+
+  def delete_one(self, f, *args, **options):
+    return db[self.collection].delete_one({ '_id': f }, *args, **options)
 
   def update_one(self, f, update, **options):
     return db[self.collection].update_one({ '_id': f }, update, **options)

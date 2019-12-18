@@ -28,10 +28,9 @@ def connect():
     sock.connect((server, port))
     sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
     sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
-    sock.send(('JOIN ' + auth.channel + '\r\n').encode('utf-8'))
+    for channel in db.raw[opt.CHANNELS].find():
+        sock.send(('JOIN #' + channel['_id'] + '\r\n').encode('utf-8'))
     sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
-
-connect()
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
@@ -58,8 +57,8 @@ def opendungeon(username):
 def pong():
     sock.send(('PONG\r\n').encode('utf-8'))
 
-def queuemessage(message):
-    msg = 'PRIVMSG ' + auth.channel + ' :' + message
+def queuemessage(message, channel):
+    msg = 'PRIVMSG #' + channel + ' :' + message
     messagequeue.put(msg)
 
 last_time_symbol = 0
@@ -72,8 +71,8 @@ def get_cooldown_bypass_symbol():
         last_time_symbol = 0
         return ' \U000e0000'
 
-def sendmessage(message):
-    msg = 'PRIVMSG ' + auth.channel + ' :' + message + get_cooldown_bypass_symbol()
+def sendmessage(message, channel):
+    msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
 
 def sendmessagequeue():
@@ -85,23 +84,27 @@ def sendmessagequeue():
 sendmessagequeuethread = threading.Thread(target = sendmessagequeue)
 sendmessagequeuethread.start()
 
+def gitinfo():
+    repo = git.Repo(search_parent_directories=True)
+    branch = repo.active_branch.name
+    sha = repo.head.object.hexsha
+    for channel in db.raw[opt.CHANNELS].find():
+        sendmessage(messages.startup_message(branch, sha), channel['_id'])
+
 def start():
+    connect()
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
     defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
     if defaultadmin == None:
         db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
-    repo = git.Repo(search_parent_directories=True)
-    branch = repo.active_branch.name
-    sha = repo.head.object.hexsha
-    db(opt.GENERAL).update_one(0, { '$set': { 'commit': sha[0:7] } } )
-    sendmessage(messages.startup_message(branch, sha))
+    gitinfo()
 
 def whisper(user, message):
     sendmessage('.w '+ user + ' ' + message)
 
-def checkuserregistered(username, req=None):
+def checkuserregistered(username, channel, req=None):
     user = db(opt.USERS).find_one_by_id(username)
     sameuser = req == username if req is not None else True
 
@@ -109,34 +112,66 @@ def checkuserregistered(username, req=None):
         if user:
             return True
         else:
-            sendmessage(messages.you_not_registered(username))
+            sendmessage(messages.you_not_registered(username), channel)
     else:
         target = db(opt.USERS).find_one_by_id(req)
         if target:
             return True
         else:
-            sendmessage(messages.user_not_registered(username))
+            sendmessage(messages.user_not_registered(username), channel)
     return False
 
 ### Admin Commands ###
 
-def runeval(username, expression):
+def joinchannel(username, currentchannel, channel):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
         try:
-            queuemessage(str(eval(expression)))
-        except Exception as e:
-            queuemessage(emoji.emojize(':x: ', use_aliases=True) + str(e))
+            print(channel)
+            name = checkusername(channel).lower()
+            if name:
+                db(opt.CHANNELS).update_one(name, { '$set': { 'online': 1 } }, upsert=True)
+                db(opt.CHANNELS).update_one(name, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
+                gitinfo(name)
+        except AttributeError:
+            queuemessage(messages.join_channel_error(channel), currentchannel)
 
-def runexec(username, code):
+def partchannel(username, channel):
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin is not None and admin['admin'] == 1:
+        channel = db(opt.CHANNELS).find_one_by_id(channel)
+        if channel:
+            channel = channel['_id']
+            sendmessage(messages.leaving_channel(checkusername(channel)), channel)
+            db(opt.CHANNELS).delete_one(channel)
+            sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
+
+def listchannels(username, channel):
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin is not None and admin['admin'] == 1:
+        joinedchannels = []
+        for joinedchannel in db.raw[opt.CHANNELS].find():
+            joinedchannels.append(joinedchannel['_id'])
+        sendmessage(messages.list_channels(joinedchannels), channel)
+
+def runeval(username, channel, expression):
+    admin = db(opt.TAGS).find_one_by_id(username)
+    if admin is not None and admin['admin'] == 1:
+        try:
+            queuemessage(str(eval(expression)), channel)
+        except Exception as e:
+            queuemessage(messages.error_message(e), channel)
+
+def runexec(username, channel, code):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
         try:
             exec(code)
         except Exception as e:
-            queuemessage(emoji.emojize(':x: ', use_aliases=True) + str(e))
+            queuemessage(messages.error_message(e), channel)
 
-def resetcd(username):
+def resetcd(username, channel):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
         for user in db.raw[opt.USERS].find():
@@ -145,17 +180,18 @@ def resetcd(username):
                 'last_entry': 0,
                 'next_entry': 0
             }})
-        queuemessage('Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True))
+        queuemessage(messages.reset_cooldown(), channel)
 
 def restart(username):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
+        sendmessage(messages.restart_message(), auth.defaultchannel)
         repo = git.Repo(search_parent_directories=True)
         repo.git.reset('--hard')
         repo.remotes.origin.pull()
         os.system('kill %d' % os.getpid())
 
-def usertag(username, target, tag):
+def usertag(username, channel, target, tag):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
         taglist = ['admin', 'moderator']
@@ -163,4 +199,4 @@ def usertag(username, target, tag):
         if user:
             if tag.lower() in taglist:
                 db(opt.TAGS).update_one(user, {'$set': {tag.lower(): 1} }, upsert=True)
-                queuemessage(user + ' set to ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True))
+                queuemessage(messages.tag_message(user, tag), channel)

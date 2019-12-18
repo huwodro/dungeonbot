@@ -10,7 +10,6 @@ db_port = 27017
 token = ''
 clientID = ''
 nickname = ''
-channelname = ''
-channel = '#'
+channel = ''
 
 defaultadmin = 'Huwodro'

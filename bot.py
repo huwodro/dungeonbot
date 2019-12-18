@@ -42,7 +42,7 @@ util.start()
 
 while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-    print(resp)
+    
     if len(resp) == 0:
         util.connect()
 

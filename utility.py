@@ -127,13 +127,15 @@ def joinchannel(username, currentchannel, channel):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
         try:
-            print(channel)
             name = checkusername(channel).lower()
             if name:
                 db(opt.CHANNELS).update_one(name, { '$set': { 'online': 1 } }, upsert=True)
                 db(opt.CHANNELS).update_one(name, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                 sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
-                gitinfo(name)
+                repo = git.Repo(search_parent_directories=True)
+                branch = repo.active_branch.name
+                sha = repo.head.object.hexsha
+                sendmessage(messages.startup_message(branch, sha), name)
         except AttributeError:
             queuemessage(messages.join_channel_error(channel), currentchannel)
 

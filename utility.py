@@ -191,6 +191,8 @@ def restart(username):
         repo = git.Repo(search_parent_directories=True)
         repo.git.reset('--hard')
         repo.remotes.origin.pull()
+        sock.send(('QUIT\r\n').encode('utf-8'))
+        sock.close()
         os.system('kill %d' % os.getpid())
 
 def usertag(username, channel, target, tag):

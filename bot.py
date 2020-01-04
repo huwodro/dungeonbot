@@ -44,6 +44,7 @@ while True:
     resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
     
     if len(resp) == 0:
+        util.sock.close()
         util.connect()
 
     elif resp.startswith('PING'):

@@ -22,15 +22,23 @@ opendungeonlock = threading.Lock()
 server = 'irc.chat.twitch.tv'
 port = 6667
 
-def connect():
+def connect (manual = False):
     global sock
     sock = socket.socket()
-    sock.connect((server, port))
-    sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
-    sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
-    for channel in db.raw[opt.CHANNELS].find():
-        sock.send(('JOIN #' + channel['_id'] + '\r\n').encode('utf-8'))
-    sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+    try:
+        sock.connect((server, port))
+        sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
+        sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
+        for channel in db.raw[opt.CHANNELS].find():
+            sock.send(('JOIN #' + channel['_id'] + '\r\n').encode('utf-8'))
+        sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+        print('Socket connected.')
+    except socket.error as err:
+        print('Socket error: ' + str(err.errno))
+        if not manual:
+            time.sleep(auth.reconnect_timer)
+        else:
+            os._exit(1) # Shuts down script if called from initialization.
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
@@ -55,7 +63,7 @@ def opendungeon(username):
     opendungeonlock.release()
 
 def pong():
-    sock.send(('PONG\r\n').encode('utf-8'))
+    sock.send(('PONG :tmi.twitch.tv\r\n').encode('utf-8'))
 
 def queuemessage(message, channel):
     msg = 'PRIVMSG #' + channel + ' :' + message
@@ -92,7 +100,7 @@ def gitinfo():
         sendmessage(messages.startup_message(branch, sha), channel['_id'])
 
 def start():
-    connect()
+    connect(True) # True for initialization.
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
@@ -101,8 +109,9 @@ def start():
         db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
     gitinfo()
 
-def whisper(user, message):
-    sendmessage('.w '+ user + ' ' + message)
+# Unused (?)
+# def whisper(user, message):
+#     sendmessage('.w '+ user + ' ' + message)
 
 def checkuserregistered(username, channel, req=None):
     user = db(opt.USERS).find_one_by_id(username)

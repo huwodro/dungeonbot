@@ -25,15 +25,11 @@ def livecheck():
         for channel in db.raw[opt.CHANNELS].find():
             tuple = ('user_login', channel['_id'])
             params.append(tuple)
-
         try:
             response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
-            error = False
         except requests.ConnectionError:
-            print('HTTP error: Connection error.')
-            error = True
-
-        if not error:
+            print('HTTP ERROR: ConnectionError')
+        else:
             for online in response['data']:
                 onlinechannels.append(online['user_name'].lower())
             for channel in db.raw[opt.CHANNELS].find():
@@ -52,15 +48,17 @@ util.start()
 while True:
     try:
         resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-        error = False
-    except Exception as err:
+    except Exception as e:
+        # print(e)
         util.sock.close()
         util.connect()
-        error = True
-    
-    if not error:
+    else:
+        if len(resp) == 0:
+            util.sock.close()
+            util.connect()
+
         if resp.startswith('PING'):
-            util.pong()
+                util.pong()
 
         elif len(resp) > 0:
             username = re.search('display-name=(.+?);', resp)
@@ -69,9 +67,9 @@ while True:
             channel = re.search('( PRIVMSG #(.+?) )', resp)
             if channel:
                 channel = channel.group(2)
-            message = re.search(r':(.*)\s:(.*)', resp)
+            message = re.search(':\B(.*)', resp)
             if message:
-                message = message.group(2).strip()
+                message = message.group(1).strip()
 
                 if message.startswith(botprefix):
                     params = message[1:].casefold().split(' ')

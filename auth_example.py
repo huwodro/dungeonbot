@@ -10,9 +10,8 @@ db_port = 27017
 token = ''
 clientID = ''
 nickname = ''
-channel = '' # Channel name must be prefixed with '#'.
+defaultchannel = ''
 
 defaultadmin = 'Huwodro'
-defaultchannel = 'huwodro'
 
 reconnect_timer = 10

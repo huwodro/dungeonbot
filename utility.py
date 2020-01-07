@@ -22,23 +22,23 @@ opendungeonlock = threading.Lock()
 server = 'irc.chat.twitch.tv'
 port = 6667
 
-def connect (manual = False):
+def connect(manual = False):
     global sock
     sock = socket.socket()
     try:
         sock.connect((server, port))
         sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
         sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
+        sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
         for channel in db.raw[opt.CHANNELS].find():
             sock.send(('JOIN #' + channel['_id'] + '\r\n').encode('utf-8'))
-        sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
-        print('Socket connected.')
-    except socket.error as err:
-        print('Socket error: ' + str(err.errno))
+        print('SOCKET CONNECTED')
+    except socket.error as e:
+        print('SOCKET ERROR: ' + str(e.errno))
         if not manual:
             time.sleep(auth.reconnect_timer)
         else:
-            os._exit(1) # Shuts down script if called from initialization.
+            os._exit(1) # Shuts down script if called from initialization
 
 def checkusername(user):
     headers = { 'Client-ID': auth.clientID }
@@ -100,7 +100,7 @@ def gitinfo():
         sendmessage(messages.startup_message(branch, sha), channel['_id'])
 
 def start():
-    connect(True) # True for initialization.
+    connect(True) # True for initialization
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
@@ -196,13 +196,14 @@ def resetcd(username, channel):
 def restart(username):
     admin = db(opt.TAGS).find_one_by_id(username)
     if admin is not None and admin['admin'] == 1:
-        sendmessage(messages.restart_message(), auth.defaultchannel)
+        for channel in db.raw[opt.CHANNELS].find():
+            sendmessage(messages.restart_message(), channel['_id'])
         repo = git.Repo(search_parent_directories=True)
         repo.git.reset('--hard')
         repo.remotes.origin.pull()
         sock.send(('QUIT\r\n').encode('utf-8'))
         sock.close()
-        os.system('kill %d' % os.getpid())
+        os._exit(1)
 
 def usertag(username, channel, target, tag):
     admin = db(opt.TAGS).find_one_by_id(username)

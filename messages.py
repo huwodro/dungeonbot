@@ -31,11 +31,11 @@ def dungeon_already_entered (username, timeremaining):
 def dungeon_level (dungeonlevel):
   return emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + dungeonlevel + ']'
 
-def dungeon_master (topuser, highestexperience):
-  return topuser + ' is the current Dungeon Master with ' + highestexperience + ' experience' + emoji.emojize(' :crown:', use_aliases=True)
+def dungeon_master (topuser, highestexperience, userlevel):
+  return topuser + ' is the current Dungeon Master at Level [' + userlevel + '] with ' + highestexperience + ' experience' + emoji.emojize(' :crown:', use_aliases=True)
 
-def dungeon_masters (numberoftopusers, highestexperience):
-  return 'There are ' + numberoftopusers + ' users with ' + highestexperience + ' experience, no one is currently Dungeon Master FeelsBadMan'
+def dungeon_masters (numberoftopusers, highestexperience, userlevel):
+  return 'There are ' + numberoftopusers + ' users at Level [' + userlevel + '] with ' + highestexperience + ' experience, no one is currently Dungeon Master FeelsBadMan'
 
 dungeon_no_master = 'There is currently no Dungeon Master FeelsBadMan'
 

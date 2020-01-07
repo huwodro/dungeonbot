@@ -108,12 +108,13 @@ def dungeonmaster(channel):
     topuser = db(opt.USERS).find_one(sort=[('total_experience', -1)])
     if topuser:
         highestexperience = topuser['total_experience']
+        userlevel = topuser['user_level']
         numberoftopusers = db(opt.USERS).count_documents( {'total_experience': highestexperience} )
         if numberoftopusers == 1:
             thetopuser = db(opt.USERS).find_one( {'total_experience': highestexperience} )
-            util.sendmessage(messages.dungeon_master(thetopuser['_id'], str(highestexperience)), channel)
+            util.sendmessage(messages.dungeon_master(thetopuser['_id'], str(highestexperience), str(userlevel)), channel)
         else:
-            util.sendmessage(messages.dungeon_masters(str(numberoftopusers), str(highestexperience)), channel)
+            util.sendmessage(messages.dungeon_masters(str(numberoftopusers), str(highestexperience), str(userlevel)), channel)
     else:
         util.sendmessage(messages.dungeon_no_master, channel)
 

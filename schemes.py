@@ -5,7 +5,10 @@ DUNGEON = {
   'total_dungeons': 0,
   'total_wins': 0,
   'total_losses': 0,
-  'commit': '0'
+  'raid_time': 0,
+  'total_raids': 0,
+  'total_raid_wins': 0,
+  'total_raid_losses': 0
 }
 
 USER = {

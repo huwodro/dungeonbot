@@ -1,6 +1,10 @@
+import math
+import random
 import re
+import sys
 import time
 import threading
+import traceback
 
 import emoji
 import requests
@@ -16,6 +20,9 @@ db = opt.MongoDatabase
 db(opt.CHANNELS).update_one(auth.defaultchannel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 messagedelay = 2.5
 botprefix = '+'
+global raidstart
+raidstart = False
+raidusers = []
 
 def livecheck():
     while True:
@@ -27,8 +34,9 @@ def livecheck():
             params.append(tuple)
         try:
             response = requests.get('https://api.twitch.tv/helix/streams', headers=headers, params=params).json()
-        except requests.ConnectionError:
-            print('HTTP ERROR: ConnectionError')
+        except:
+            sys.stderr.write(traceback.format_exc() + '\n')
+            sys.stderr.flush()
         else:
             for online in response['data']:
                 onlinechannels.append(online['user_name'].lower())
@@ -45,11 +53,70 @@ livecheckthread.start()
 
 util.start()
 
+def raidevent():
+    while True:
+        successrate = 0
+        dungeon = db(opt.GENERAL).find_one_by_id(0)
+        if int(dungeon['raid_time'] - time.time()) <= 0:
+            raidlevel = random.randint(1, dungeon['dungeon_level']+1)
+            global raidstart
+            raidstart = True
+            util.queuemessage(messages.raid_event_appear(str(raidlevel)), 1)
+            time.sleep(15)
+            for i in range(45, 0, -15):
+                util.queuemessage(messages.raid_event_countdown(str(i)), 1)
+                time.sleep(15)
+            raidstart = False
+            rand = random.randint(3600, 7200)
+            db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } }, upsert=True)
+            if len(raidusers) == 0:
+                util.queuemessage(messages.raid_event_no_users(), 1)
+                continue
+            elif len(raidusers) == 1:
+                userWord = ' user'
+            else:
+                userWord = ' users'
+            for user in raidusers:
+                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 100)
+            util.queuemessage(messages.raid_event_start(str(len(raidusers)), userWord, str(successrate/10)), 1)
+            time.sleep(3)
+            raidsuccess = random.randint(1, 1001)
+            if raidsuccess <= successrate:
+                experiencegain = int(raidlevel**1.2 * 200 / len(raidusers))
+                util.queuemessage(messages.raid_event_win(str(len(raidusers)), userWord, str(raidlevel), str(experiencegain)), 1)
+                for user in raidusers:
+                    db(opt.USERS).update_one(user[0], {'$inc': {
+                        'total_experience': experiencegain,
+                        'current_experience': experiencegain,
+                        'raid_wins': 1
+                    }})
+                    while (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
+                        db(opt.USERS).update_one(user[0], {'$inc': {
+                            'user_level': 1,
+                            'current_experience': -(((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100)
+                        }})
+                    util.queuemessage(messages.user_level_up(user[0], str(db(opt.USERS).find_one_by_id(user[0])['user_level'])), 0, user[1])
+                db(opt.GENERAL).update_one(0, {'$inc': {
+                    'total_experience': experiencegain,
+                    'total_raid_wins': 1
+                }})
+            else:
+                util.queuemessage(messages.raid_event_failed(str(len(raidusers)), userWord, str(raidlevel)), 1)
+                for user in raidusers:
+                    db(opt.USERS).update_one(user[0], { '$inc': { 'raid_losses': 1 } })
+                db(opt.GENERAL).update_one(0, { '$inc': { 'total_raid_losses': 1 } })
+            db(opt.USERS).update_one(user[0], { '$inc': { 'raids': 1 } })
+            db(opt.GENERAL).update_one(0, { '$inc': { 'total_raids': 1 } })
+            raidusers.clear()
+        time.sleep(60)
+
+raideventthread = threading.Thread(target = raidevent)
+raideventthread.start()
+
 while True:
     try:
         resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-    except Exception as e:
-        # print(e)
+    except:
         util.sock.close()
         util.connect()
     else:
@@ -98,6 +165,10 @@ while True:
                                 cmd.dungeonstats(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
+                            if params[0] == 'raidstats':
+                                cmd.raidstats(channel)
+                                db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+
                             if params[0] == 'dungeonstatus':
                                 cmd.dungeonstatus(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
@@ -130,6 +201,15 @@ while True:
                                 except IndexError:
                                     cmd.winrate(username, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+
+                        if params[0] == 'join':
+                            if raidstart:
+                                if username not in dict(raidusers):
+                                    user = db(opt.USERS).find_one_by_id(username)
+                                    if user is not None:
+                                        raidusers.append((username, channel))
+                                    else:
+                                        util.queuemessage(messages.you_not_registered(username), 0, channel)
 
                     if params[0] == 'add':
                         try:

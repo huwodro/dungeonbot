@@ -1,10 +1,10 @@
 import datetime
 import random
 import re
-import time
 import threading
-import utility as util
+import time
 
+import utility as util
 import database as opt
 import schemes
 import messages
@@ -119,10 +119,19 @@ def dungeonmaster(channel):
         util.sendmessage(messages.dungeon_no_master, channel)
 
 def dungeonstats(channel):
-    dungeon = db(opt.GENERAL).find_one_by_id(0)
-    dungeons = dungeon['total_dungeons']
-    wins = dungeon['total_wins']
-    losses = dungeon['total_losses']
+    general = db(opt.GENERAL).find_one_by_id(0)
+    try:
+        dungeons = general['total_dungeons']
+    except:
+        dungeons = 0
+    try:
+        wins = general['total_wins']
+    except:
+        wins = 0
+    try:
+        losses = general['total_losses']
+    except:
+        losses = 0
     if dungeons == 1:
         dungeonword = ' Dungeon'
     else:
@@ -139,6 +148,37 @@ def dungeonstats(channel):
         util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, str(round((((wins)/(dungeons))*100), 3))), channel)
     else:
         util.sendmessage(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, '0'), channel)
+
+def raidstats(channel):
+    general = db(opt.GENERAL).find_one_by_id(0)
+    try:
+        raids = general['total_raids']
+    except:
+        raids = 0
+    try:
+        wins = general['total_raid_wins']
+    except:
+        wins = 0
+    try:
+        losses = general['total_raid_losses']
+    except:
+        losses = 0
+    if raids == 1:
+        raidword = ' Raid'
+    else:
+        raidword = ' Raids'
+    if wins == 1:
+        winword = ' Win'
+    else:
+        winword = ' Wins'
+    if losses == 1:
+        loseword = ' Loss'
+    else:
+        loseword = ' Losses'
+    if raids is not 0:
+        util.sendmessage(messages.raid_general_stats(str(raids), raidword, str(wins), winword, str(losses), loseword, str(round((((wins)/(raids))*100), 3))), channel)
+    else:
+        util.sendmessage(messages.raid_general_stats(str(raids), raidword, str(wins), winword, str(losses), loseword, '0'), channel)
 
 def dungeonstatus(channel):
     uptime = time.time()

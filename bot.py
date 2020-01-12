@@ -54,6 +54,9 @@ livecheckthread.start()
 util.start()
 
 def raidevent():
+    time_to_join = 120
+    message_interval = 30
+    interval_range = time_to_join - message_interval
     while True:
         successrate = 0
         dungeon = db(opt.GENERAL).find_one_by_id(0)
@@ -61,11 +64,11 @@ def raidevent():
             raidlevel = random.randint(1, dungeon['dungeon_level']+1)
             global raidstart
             raidstart = True
-            util.queuemessage(messages.raid_event_appear(str(raidlevel)), 1)
-            time.sleep(15)
-            for i in range(45, 0, -15):
+            util.queuemessage(messages.raid_event_appear(str(raidlevel), str(time_to_join)), 1)
+            time.sleep(message_interval)
+            for i in range(interval_range, 0, -(message_interval)):
                 util.queuemessage(messages.raid_event_countdown(str(i)), 1)
-                time.sleep(15)
+                time.sleep(message_interval)
             raidstart = False
             rand = random.randint(3600, 7200)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } }, upsert=True)
@@ -82,7 +85,7 @@ def raidevent():
             time.sleep(3)
             raidsuccess = random.randint(1, 1001)
             if raidsuccess <= successrate:
-                experiencegain = int(raidlevel**1.2 * 200 / len(raidusers))
+                experiencegain = int(raidlevel**1.2 * 250 / len(raidusers))
                 util.queuemessage(messages.raid_event_win(str(len(raidusers)), userWord, str(raidlevel), str(experiencegain)), 1)
                 for user in raidusers:
                     db(opt.USERS).update_one(user[0], {'$inc': {
@@ -90,12 +93,13 @@ def raidevent():
                         'current_experience': experiencegain,
                         'raid_wins': 1
                     }})
-                    while (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
-                        db(opt.USERS).update_one(user[0], {'$inc': {
-                            'user_level': 1,
-                            'current_experience': -(((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100)
-                        }})
-                    util.queuemessage(messages.user_level_up(user[0], str(db(opt.USERS).find_one_by_id(user[0])['user_level'])), 0, user[1])
+                    if (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
+                        while (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
+                            db(opt.USERS).update_one(user[0], {'$inc': {
+                                'user_level': 1,
+                                'current_experience': -(((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100)
+                            }})
+                        util.queuemessage(messages.user_level_up(user[0], str(db(opt.USERS).find_one_by_id(user[0])['user_level'])), 0, user[1])
                 db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experiencegain,
                     'total_raid_wins': 1

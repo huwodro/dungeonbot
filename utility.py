@@ -112,7 +112,8 @@ def gitinfo():
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
     for channel in db.raw[opt.CHANNELS].find():
-        sendmessage(messages.startup_message(branch, sha), channel['_id'])
+        if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
+            sendmessage(messages.startup_message(branch, sha), channel['_id'])
 
 def start():
     connect(True) # True for initialization

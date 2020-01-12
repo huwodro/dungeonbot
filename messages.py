@@ -45,8 +45,8 @@ def dungeon_general_stats(dungeons, dungeonword, wins, winword, losses, loseword
 def raid_general_stats(raids, raidword, wins, winword, losses, loseword, winrate):
     return 'General Raid Stats: ' + raids + raidword + ' / ' + wins + winword +' / ' + losses + loseword + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_orange_diamond:', use_aliases=True)
 
-def raid_event_appear(raidlevel):
-    return 'A Raid Event at Level [' + raidlevel + '] has appeared. Type +join to join the raid! The raid will begin in 60 seconds!' + emoji.emojize(':zap:', use_aliases=True)
+def raid_event_appear(raidlevel, time):
+    return 'A Raid Event at Level [' + raidlevel + '] has appeared. Type +join to join the raid! The raid will begin in ' + time + ' seconds!' + emoji.emojize(':zap:', use_aliases=True)
 
 def raid_event_countdown(time):
     return 'The raid will begin in ' + time + ' seconds. Type +join to join the raid!' + emoji.emojize(':zap:', use_aliases=True)

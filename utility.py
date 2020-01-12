@@ -123,8 +123,6 @@ def start():
     defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
     if defaultadmin == None:
         db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
-    rand = random.randint(3600, 7200)
-    db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } }, upsert=True)
     gitinfo()
 
 # Unused (?)

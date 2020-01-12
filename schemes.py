@@ -1,3 +1,8 @@
+import random
+import time
+
+rand = random.randint(3600, 7200)
+
 DUNGEON = {
   'open': 0,
   'dungeon_level': 0,
@@ -5,7 +10,7 @@ DUNGEON = {
   'total_dungeons': 0,
   'total_wins': 0,
   'total_losses': 0,
-  'raid_time': 0,
+  'raid_time': time.time() + rand,
   'total_raids': 0,
   'total_raid_wins': 0,
   'total_raid_losses': 0

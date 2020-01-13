@@ -91,7 +91,8 @@ def raidevent():
                     db(opt.USERS).update_one(user[0], {'$inc': {
                         'total_experience': experiencegain,
                         'current_experience': experiencegain,
-                        'raid_wins': 1
+                        'raid_wins': 1,
+                        'raids': 1
                     }})
                     if (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
                         while (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
@@ -107,9 +108,11 @@ def raidevent():
             else:
                 util.queuemessage(messages.raid_event_failed(str(len(raidusers)), userWord, str(raidlevel)), 1)
                 for user in raidusers:
-                    db(opt.USERS).update_one(user[0], { '$inc': { 'raid_losses': 1 } })
+                    db(opt.USERS).update_one(user[0], {'$inc': {
+                        'raid_losses': 1,
+                        'raids': 1
+                    }})
                 db(opt.GENERAL).update_one(0, { '$inc': { 'total_raid_losses': 1 } })
-            db(opt.USERS).update_one(user[0], { '$inc': { 'raids': 1 } })
             db(opt.GENERAL).update_one(0, { '$inc': { 'total_raids': 1 } })
             raidusers.clear()
         time.sleep(60)

@@ -120,7 +120,7 @@ def checkuserregistered(username, channel, req=None):
     user = db(opt.USERS).find_one_by_id(username)
     sameuser = req == username if req is not None else True
     if sameuser:
-        if user:
+        if user.get('user_level'):
             return True
         else:
             sendmessage(messages.you_not_registered(username), channel)

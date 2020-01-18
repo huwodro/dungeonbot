@@ -19,7 +19,7 @@ def commands(channel):
 
 def enterdungeon(username, message, channel):
     user = db(opt.USERS).find_one_by_id(username)
-    if user is not None:
+    if user is not None and user.get('user_level') is not None:
         entertime = time.time()
         if int(user['next_entry'] - entertime) <= 0:
             util.opendungeon(username)
@@ -105,7 +105,7 @@ def dungeonlvl(channel):
 
 def dungeonmaster(channel):
     topuser = db(opt.USERS).find_one(sort=[('total_experience', -1)])
-    if topuser:
+    if topuser.get('user_level'):
         highestexperience = topuser['total_experience']
         userlevel = topuser['user_level']
         numberoftopusers = db(opt.USERS).count_documents( {'total_experience': highestexperience} )
@@ -185,7 +185,7 @@ def dungeonstatus(channel):
 
 def register(username, channel):
     user = db(opt.USERS).find_one_by_id(username)
-    if user == None:
+    if user.get('user_level') == None:
         db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
         dungeon = db(opt.GENERAL).find_one_by_id(0)

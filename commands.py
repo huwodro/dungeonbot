@@ -105,7 +105,7 @@ def dungeonlvl(channel):
 
 def dungeonmaster(channel):
     topuser = db(opt.USERS).find_one(sort=[('total_experience', -1)])
-    if topuser.get('user_level'):
+    if topuser and topuser.get('user_level'):
         highestexperience = topuser['total_experience']
         userlevel = topuser['user_level']
         numberoftopusers = db(opt.USERS).count_documents( {'total_experience': highestexperience} )
@@ -185,7 +185,7 @@ def dungeonstatus(channel):
 
 def register(username, channel):
     user = db(opt.USERS).find_one_by_id(username)
-    if user.get('user_level') == None:
+    if user == None or user.get('user_level') == None:
         db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(username, { '$set': schemes.USER }, upsert=True)
         dungeon = db(opt.GENERAL).find_one_by_id(0)

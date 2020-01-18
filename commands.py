@@ -19,7 +19,7 @@ def commands(channel):
 
 def enterdungeon(username, message, channel):
     user = db(opt.USERS).find_one_by_id(username)
-    if user is not None and user.get('user_level') is not None:
+    if user.get('user_level') is not None:
         entertime = time.time()
         if int(user['next_entry'] - entertime) <= 0:
             util.opendungeon(username)

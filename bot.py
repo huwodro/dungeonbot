@@ -242,10 +242,12 @@ while True:
                             if raidstart:
                                 if username not in dict(raidusers):
                                     user = db(opt.USERS).find_one_by_id(username)
-                                    if user is not None:
+                                    if user.get('user_level') is not None:
                                         raidusers.append((username, channel))
                                     else:
                                         util.queuemessage(messages.you_not_registered(username), 0, channel)
+                                        registerthread = threading.Thread(target = util.queuemessage, args=(messages.you_not_registered(username), 0, channel))
+                                        registerthread.start()
 
                     if params[0] == 'suggest':
                         util.suggest(username, channel, message[len(params[0])+2:])

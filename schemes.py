@@ -32,5 +32,6 @@ CHANNELS = {
     'online': 1,
     'cmdusetime': time.time(),
     'global_cooldown': 2.5,
-    'user_cooldown': 0
+    'user_cooldown': 0,
+    'message_queued': 0
 }

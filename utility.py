@@ -1,5 +1,4 @@
 import os
-import queue
 import random
 import re
 import socket
@@ -80,16 +79,28 @@ def sendmessage(message, channel):
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
 
+queuemessage_lock = threading.Lock()
+
 def queuemessage(message, sendto, channel = None):
-    time.sleep(1)
+    queuemessage_lock.acquire()
+    if channel == None:
+        for channel in db.raw[opt.CHANNELS].find():
+            if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
+                db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 1 } } )
+    else:
+        db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 1 } } )
+    time.sleep(1.25)
     if sendto == 0:
         msg = 'PRIVMSG #' + channel + ' :' + message
         sock.send((msg + '\r\n').encode('utf-8'))
+        db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 0 } } )
     else:
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
                 msg = 'PRIVMSG #' + channel['_id'] + ' :' + message
                 sock.send((msg + '\r\n').encode('utf-8'))
+                db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 0 } } )
+    queuemessage_lock.release()
 
 def whisper(user, message, channel):
     msg = 'PRIVMSG #' + channel + ' :.w ' + user + ' ' + message
@@ -171,7 +182,8 @@ def joinchannel(currentchannel, channel, global_cooldown, user_cooldown):
                 'online': 1,
                 'cmdusetime': time.time(),
                 'global_cooldown': global_cooldown,
-                'user_cooldown': user_cooldown
+                'user_cooldown': user_cooldown,
+                'message_queued': 0
             }}, upsert=True)
             sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
             repo = git.Repo(search_parent_directories=True)

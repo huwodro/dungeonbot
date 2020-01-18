@@ -62,6 +62,7 @@ def raidevent():
             raidlevel = random.randint(1, dungeon['dungeon_level']+1)
             global raidstart
             raidstart = True
+            time.sleep(0.5)
             util.queuemessage(messages.raid_event_appear(str(raidlevel), str(time_to_join)), 1)
             time.sleep(message_interval)
             for i in range(interval_range, 0, -(message_interval)):
@@ -161,7 +162,8 @@ while True:
                         user_cooldown = db(opt.CHANNELS).find_one_by_id(channel)['user_cooldown']
                         global_cmdusetime = db(opt.CHANNELS).find_one_by_id(channel)['cmdusetime']
                         global_cooldown = db(opt.CHANNELS).find_one_by_id(channel)['global_cooldown']
-                        if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown:
+                        message_queued = db(opt.CHANNELS).find_one_by_id(channel)['message_queued']
+                        if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown and message_queued == 0:
 
                             if message == '!bot' or message == '!huwobot':
                                 util.sendmessage(messages.bot_description, channel)

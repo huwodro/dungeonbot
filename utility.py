@@ -153,7 +153,7 @@ def suggest(username, channel, message):
 def checksuggestion(username, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)['suggestion']
     user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
-    whisper(username, messages.check_suggestion_message(suggestion, user, str(id)), channel)
+    whisper(username, messages.check_suggestion(suggestion, user, str(id)), channel)
 
 def removesuggestion(username, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)

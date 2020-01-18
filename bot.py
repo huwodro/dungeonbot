@@ -121,6 +121,7 @@ raideventthread.start()
 while True:
     try:
         resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
+        print(resp)
     except:
         util.sock.close()
         util.connect()
@@ -130,7 +131,14 @@ while True:
             util.connect()
 
         if resp.startswith('PING'):
-                util.pong()
+            util.pong()
+
+        elif resp.startswith(':tmi.twitch.tv PONG'):
+            channel = re.search('\s:(.*)', resp)
+            if channel:
+                channel = channel.group(1)
+            latency = round(((time.time() - ping_time)*1000), 2)
+            util.sendmessage(messages.pong(str(latency)), channel)
 
         elif len(resp) > 0:
             username = re.search('display-name=(.+?);', resp)
@@ -143,7 +151,7 @@ while True:
             if message:
                 message = message.group(1).strip()
 
-                if message.startswith(botprefix):
+                if message.startswith(botprefix) or message == '!bot' or message == '!huwobot':
                     params = message[1:].casefold().split(' ')
 
                     if db(opt.CHANNELS).find_one_by_id(channel)['online'] == 0:
@@ -155,6 +163,11 @@ while True:
                         global_cmdusetime = db(opt.CHANNELS).find_one_by_id(channel)['cmdusetime']
                         global_cooldown = db(opt.CHANNELS).find_one_by_id(channel)['global_cooldown']
                         if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown:
+
+                            if message == '!bot' or message == '!huwobot':
+                                util.sendmessage(messages.bot_description, channel)
+                                db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'commands' or params[0] == 'help':
                                 cmd.commands(channel)
@@ -192,7 +205,8 @@ while True:
                                 db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'ping':
-                                cmd.ping(channel)
+                                ping_time = time.time()
+                                util.sock.send(('PING ' + channel + '\r\n').encode('utf-8'))
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                                 db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 

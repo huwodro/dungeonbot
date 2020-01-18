@@ -183,9 +183,6 @@ def dungeonstatus(channel):
     uptime = time.time()
     util.sendmessage(messages.dungeon_uptime(str(datetime.timedelta(seconds=(int(uptime - botstart))))), channel)
 
-def ping(channel):
-    util.sendmessage(messages.pong, channel)
-
 def register(username, channel):
     user = db(opt.USERS).find_one_by_id(username)
     if user == None:

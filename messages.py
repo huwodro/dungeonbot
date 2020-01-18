@@ -1,8 +1,11 @@
 import emoji
 
-commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +raidstats | +dungeonstatus'
+commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +raidstats | +uptime | +suggest'
 
-pong = 'Dungeon Bot MrDestructoid For a list of commands, type +commands'
+bot_description = 'Dungeon Bot MrDestructoid Made by Huwodro. For a list of commands, type +commands'
+
+def pong(latency):
+    return 'Dungeon Bot [' + latency + ' ms] MrDestructoid For a list of commands, type +commands'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'

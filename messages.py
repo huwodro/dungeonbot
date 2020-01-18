@@ -102,7 +102,22 @@ def you_not_registered(username):
 def user_not_registered(username):
     return username + ', that user is not registered!' + emoji.emojize(' :warning:', use_aliases=True)
 
-def join_channel_error(channel):
+def suggestion_message(username, id):
+    return username + ', thanks for your suggestion! ' + emoji.emojize(':memo:', use_aliases=True) + ' [ID ' + id + ']'
+
+def check_suggestion(suggestion, user, id):
+    return '\"' + suggestion + '\"' + ' - ' + user + ' [ID ' + id + ']'
+
+def suggestion_removed(id):
+    return 'Suggestion [ID ' + id + '] removed!'
+
+remove_suggestion_usage_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +rs <id>'
+
+remove_suggestion_error = emoji.emojize(':warning: ', use_aliases=True) + 'No such ID!'
+
+no_suggestions = 'There are no suggestions!' + emoji.emojize(':memo:', use_aliases=True)
+
+def no_channel_error(channel):
     return emoji.emojize(':x: ', use_aliases=True) + 'channel ' + channel + ' does not exist'
 
 def leaving_channel(name):
@@ -111,8 +126,7 @@ def leaving_channel(name):
 def list_channels(list):
     return '[' + ', '.join(list) + ']'
 
-def reset_cooldown():
-    return 'Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True)
+reset_cooldown = 'Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True)
 
 def tag_message(user, tag):
     return user + ' set to ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True)
@@ -120,11 +134,10 @@ def tag_message(user, tag):
 def error_message(error):
     return emoji.emojize(':x: ', use_aliases=True) + str(error)
 
-def channel_error():
-    return emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +channel <name>'
+add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +channel <name> (optional: <global cooldown> <user cooldown>)'
 
-def tag_error():
-    return emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>'
+set_cooldown_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +cd <channel> <global/user> <cooldown>'
 
-def restart_message():
-    return emoji.emojize(':arrows_counterclockwise:', use_aliases=True) + ' Restarting...'
+tag_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>'
+
+restart_message = emoji.emojize(':arrows_counterclockwise:', use_aliases=True) + ' Restarting...'

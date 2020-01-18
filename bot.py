@@ -17,12 +17,12 @@ import schemes
 import messages
 
 db = opt.MongoDatabase
-db(opt.CHANNELS).update_one(auth.defaultchannel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
-messagedelay = 2.5
 botprefix = '+'
 global raidstart
 raidstart = False
 raidusers = []
+
+util.start()
 
 def livecheck():
     while True:
@@ -51,8 +51,6 @@ def livecheck():
 livecheckthread = threading.Thread(target = livecheck)
 livecheckthread.start()
 
-util.start()
-
 def raidevent():
     time_to_join = 120
     message_interval = 30
@@ -80,7 +78,7 @@ def raidevent():
             else:
                 userWord = ' users'
             for user in raidusers:
-                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 100)
+                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 150)
             util.queuemessage(messages.raid_event_start(str(len(raidusers)), userWord, str(successrate/10)), 1)
             time.sleep(3)
             raidsuccess = random.randint(1, 1001)
@@ -149,44 +147,59 @@ while True:
                     params = message[1:].casefold().split(' ')
 
                     if db(opt.CHANNELS).find_one_by_id(channel)['online'] == 0:
-                        cmdusetime = db(opt.CHANNELS).find_one_by_id(channel)['cmdusetime']
-                        if time.time() > cmdusetime + messagedelay and util.messagequeue.empty():
+                        try:
+                            user_cmdusetime = db(opt.USERS).find_one_by_id(username)['cmdusetime']
+                        except:
+                            user_cmdusetime = 0
+                        user_cooldown = db(opt.CHANNELS).find_one_by_id(channel)['user_cooldown']
+                        global_cmdusetime = db(opt.CHANNELS).find_one_by_id(channel)['cmdusetime']
+                        global_cooldown = db(opt.CHANNELS).find_one_by_id(channel)['global_cooldown']
+                        if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown:
 
                             if params[0] == 'commands' or params[0] == 'help':
                                 cmd.commands(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'enterdungeon' or params[0] == 'ed':
                                 cmd.enterdungeon(username, message, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
                                 cmd.dungeonlvl(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'dungeonmaster' or params[0] == 'dm':
                                 cmd.dungeonmaster(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'dungeonstats':
                                 cmd.dungeonstats(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'raidstats':
                                 cmd.raidstats(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
-                            if params[0] == 'dungeonstatus':
+                            if params[0] == 'dungeonstatus' or params[0] == 'uptime':
                                 cmd.dungeonstatus(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'ping':
                                 cmd.ping(channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'register':
                                 cmd.register(username, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'xp' or params[0] == 'exp':
                                 try:
@@ -194,6 +207,7 @@ while True:
                                 except IndexError:
                                     cmd.userexperience(username, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'lvl' or params[0] == 'level':
                                 try:
@@ -201,6 +215,7 @@ while True:
                                 except IndexError:
                                     cmd.userlevel(username, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                             if params[0] == 'winrate':
                                 try:
@@ -208,6 +223,7 @@ while True:
                                 except IndexError:
                                     cmd.winrate(username, channel)
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'join':
                             if raidstart:
@@ -218,35 +234,96 @@ while True:
                                     else:
                                         util.queuemessage(messages.you_not_registered(username), 0, channel)
 
+                    if params[0] == 'suggest':
+                        util.suggest(username, channel, message[len(params[0])+2:])
+
+                    ### Admin Commands ###
+
+                    if params[0] == 'cs':
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.checksuggestion(username, channel, int(params[1]))
+                            except:
+                                suggestion = db(opt.SUGGESTIONS).find_one(sort=[('_id', 1)])
+                                if suggestion is not None:
+                                    id = suggestion['_id']
+                                    util.checksuggestion(username, channel, int(id))
+                                else:
+                                    util.whisper(username, messages.no_suggestions, channel)
+
+                    if params[0] == 'rs':
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.removesuggestion(username, channel, int(params[1]))
+                            except IndexError:
+                                util.whisper(username, messages.remove_suggestion_usage_error, channel)
+                            except ValueError as e:
+                                util.whisper(username, messages.error_message(e), channel)
+
                     if params[0] == 'add':
-                        try:
-                            util.joinchannel(username, channel, params[1])
-                        except IndexError as e:
-                            util.queuemessage(messages.channel_error(), channel)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.joinchannel(channel, params[1], float(params[2]), float(params[3]))
+                            except IndexError:
+                                if len(params) == 3:
+                                    util.joinchannel(channel, params[1], float(params[2]), 0)
+                                elif len(params) == 2:
+                                    util.joinchannel(channel, params[1], 2.5, 0)
+                                else:
+                                    util.queuemessage(messages.add_channel_error, 0, channel)
+                            except ValueError as e:
+                                util.queuemessage(messages.error_message(e), 0, channel)
 
                     if params[0] == 'part':
-                        try:
-                            util.partchannel(username, params[1])
-                        except IndexError as e:
-                            util.queuemessage(messages.channel_error(), channel)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.partchannel(params[1])
+                            except IndexError as e:
+                                util.queuemessage(messages.channel_error(), 0, channel)
+
+                    if params[0] == 'cd' or params[0] == 'cooldown':
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.setcooldown(params[1], params[2], float(params[3]))
+                            except IndexError:
+                                util.queuemessage(messages.set_cooldown_error, 0, channel)
+                            except ValueError as e:
+                                util.queuemessage(messages.error_message(e), 0, channel)
 
                     if params[0] == 'channels':
-                        util.listchannels(username, channel)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            util.listchannels(channel)
 
                     if params[0] == 'eval':
-                        util.runeval(username, channel, message[6:])
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            util.runeval(channel, message[len(params[0])+2:])
 
                     if params[0] == 'exec':
-                        util.runexec(username, channel, message[6:])
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            util.runexec(channel, message[len(params[0])+2:])
 
                     if params[0] == 'tag':
-                        try:
-                            util.usertag(username, channel, params[1], params[2])
-                        except IndexError as e:
-                            util.queuemessage(messages.tag_error(), channel)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            try:
+                                util.usertag(channel, params[1], params[2])
+                            except IndexError as e:
+                                util.queuemessage(messages.tag_error, 0, channel)
 
                     if params[0] == 'resetcd':
-                        util.resetcd(username, channel)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            util.resetcd(channel)
 
                     if params[0] == 'restart':
-                        util.restart(username)
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            util.restart()

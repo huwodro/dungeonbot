@@ -97,8 +97,7 @@ def enterdungeon(username, message, channel):
         util.sendmessage(messages.you_not_registered(username), channel)
 
 def levelup(username, message, channel):
-    time.sleep(1.5)
-    util.sendmessage(messages.user_level_up(username, message), channel)
+    util.queuemessage(messages.user_level_up(username, message), 0, channel)
 
 def dungeonlvl(channel):
     dungeon = db(opt.GENERAL).find_one_by_id(0)

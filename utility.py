@@ -119,7 +119,6 @@ def start():
 def checkuserregistered(username, channel, req=None):
     user = db(opt.USERS).find_one_by_id(username)
     sameuser = req == username if req is not None else True
-
     if sameuser:
         if user:
             return True
@@ -146,7 +145,8 @@ def suggest(username, channel, message):
             'user': username,
             'suggestion': message
         }}, upsert=True)
-        queuemessage(messages.suggestion_message(username, str(id)), 0, channel)
+        suggestionthread = threading.Thread(target = queuemessage, args=(messages.suggestion_message(username, str(id)), 0, channel))
+        suggestionthread.start()
 
 ### Admin Commands ###
 
@@ -185,7 +185,8 @@ def partchannel(channel):
     channel = db(opt.CHANNELS).find_one_by_id(channel)
     if channel:
         channel = channel['_id']
-        queuemessage(messages.leaving_channel(checkusername(channel)), 0, channel)
+        partchannelthread = threading.Thread(target = queuemessage, args=(messages.leaving_channel(checkusername(channel)), 0, channel))
+        partchannelthread.start()
         db(opt.CHANNELS).delete_one(channel)
         sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
 

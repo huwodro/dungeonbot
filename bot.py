@@ -245,7 +245,6 @@ while True:
                                     if user.get('user_level') is not None:
                                         raidusers.append((username, channel))
                                     else:
-                                        util.queuemessage(messages.you_not_registered(username), 0, channel)
                                         registerthread = threading.Thread(target = util.queuemessage, args=(messages.you_not_registered(username), 0, channel))
                                         registerthread.start()
 

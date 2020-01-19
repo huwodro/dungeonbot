@@ -86,7 +86,7 @@ def queuemessage(message, sendto, channel = None):
     if channel == None:
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 1 } } )
+                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 1 } } )
     else:
         db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
@@ -99,7 +99,7 @@ def queuemessage(message, sendto, channel = None):
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
                 msg = 'PRIVMSG #' + channel['_id'] + ' :' + message
                 sock.send((msg + '\r\n').encode('utf-8'))
-                db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 0 } } )
+                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 0 } } )
     queuemessage_lock.release()
 
 def whisper(user, message, channel):

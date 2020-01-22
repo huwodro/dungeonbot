@@ -312,7 +312,7 @@ while True:
                             try:
                                 util.partchannel(params[1])
                             except IndexError as e:
-                                util.queuemessage(messages.channel_error(), 0, channel)
+                                util.queuemessage(messages.no_channel_error(), 0, channel)
 
                     if params[0] == 'cd' or params[0] == 'cooldown':
                         admin = db(opt.TAGS).find_one_by_id(username)

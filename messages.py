@@ -168,7 +168,9 @@ def error_message(error):
 
 add_text_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +text <vgr/vbr/gr/br/fail> <message>)'
 
-add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +channel <name> (optional: <global cooldown> <user cooldown>)'
+add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +add <name> (optional: <global cooldown> <user cooldown>)'
+
+part_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +part <name>'
 
 set_cooldown_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +cd <channel> <global/user> <cooldown>'
 

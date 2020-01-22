@@ -161,6 +161,19 @@ def suggest(username, channel, message):
 
 ### Admin Commands ###
 
+def dungeontext(mode, message):
+    texts = db(opt.TEXT).count_documents({})
+    try:
+        id = db(opt.TEXT).find_one(sort=[('_id', -1)])['_id']
+    except:
+        id = 0
+    else:
+        id += 1
+    db(opt.TEXT).update_one(id, {'$set': {
+        'mode': mode,
+        'text': message
+    }}, upsert=True)
+
 def checksuggestion(username, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)['suggestion']
     user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
@@ -208,12 +221,14 @@ def listchannels(channel):
         joinedchannels.append(joinedchannel['_id'])
     queuemessage(messages.list_channels(joinedchannels), 0, channel)
 
-def setcooldown(channel, mode, cooldown):
+def setcooldown(channel, mode, cooldown, currentchannel):
     if db(opt.CHANNELS).find_one_by_id(channel):
         if mode == 'global':
             db(opt.CHANNELS).update_one(channel, { '$set': { 'global_cooldown': cooldown } } )
         elif mode == 'user':
             db(opt.CHANNELS).update_one(channel, { '$set': { 'user_cooldown': cooldown } } )
+        else:
+            queuemessage(messages.set_cooldown_error, 0, currentchannel)
 
 def runeval(channel, expression):
     try:

@@ -232,7 +232,7 @@ while True:
                                 db(opt.CHANNELS).update_one(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                                 db(opt.USERS).update_one(username, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
-                            if params[0] == 'winrate':
+                            if params[0] == 'winrate' or params[0] == 'wr':
                                 try:
                                     cmd.winrate(username, channel, params[1])
                                 except IndexError:
@@ -255,16 +255,29 @@ while True:
 
                     ### Admin Commands ###
 
+                    if params[0] == 'text':
+                        admin = db(opt.TAGS).find_one_by_id(username)
+                        if admin is not None and admin['admin'] == 1:
+                            modes = ['vgr', 'vbr', 'gr', 'br', 'fail']
+                            try:
+                                if params[1] in modes:
+                                    util.dungeontext(params[1], message[len(params[0])+len(params[1])+2:])
+                                else:
+                                    util.queuemessage(messages.add_text_error, 0, channel)
+                            except IndexError:
+                                util.queuemessage(messages.add_text_error, 0, channel)
+
                     if params[0] == 'cs':
                         admin = db(opt.TAGS).find_one_by_id(username)
                         if admin is not None and admin['admin'] == 1:
                             try:
                                 util.checksuggestion(username, channel, int(params[1]))
                             except:
-                                suggestion = db(opt.SUGGESTIONS).find_one(sort=[('_id', 1)])
-                                if suggestion is not None:
-                                    id = suggestion['_id']
-                                    util.checksuggestion(username, channel, int(id))
+                                suggestions = []
+                                for suggestion in db.raw[opt.SUGGESTIONS].find():
+                                    suggestions.append(suggestion['_id'])
+                                if suggestions:
+                                    util.whisper(username, messages.list_suggestions(suggestions), channel)
                                 else:
                                     util.whisper(username, messages.no_suggestions, channel)
 
@@ -305,7 +318,7 @@ while True:
                         admin = db(opt.TAGS).find_one_by_id(username)
                         if admin is not None and admin['admin'] == 1:
                             try:
-                                util.setcooldown(params[1], params[2], float(params[3]))
+                                util.setcooldown(params[1], params[2], float(params[3]), channel)
                             except IndexError:
                                 util.queuemessage(messages.set_cooldown_error, 0, channel)
                             except ValueError as e:

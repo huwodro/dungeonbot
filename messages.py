@@ -1,4 +1,10 @@
+import random
+
 import emoji
+
+import database as opt
+
+db = opt.MongoDatabase
 
 commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +raidstats | +uptime | +suggest'
 
@@ -14,19 +20,39 @@ def dungeon_too_low_level(username, dungeonlevel):
     return username + ', the Dungeon [' + dungeonlevel + "] is too low level for you to enter. You won't gain any experience!" + emoji.emojize(':crossed_swords:', use_aliases=True)
 
 def dungeon_very_bad_run(username, levelrun, experiencegain):
-    return username + ' | Very Bad Run [x0.5] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
+    try:
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vbr'}, 1))[0]['text'], use_aliases=True)
+    except:
+        message = 'Very Bad Run'
+    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_very_good_run(username, levelrun, experiencegain):
-    return username + ' | Very Good Run [x1.5] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
+    try:
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vgr'}, 1))[0]['text'], use_aliases=True)
+    except:
+        message = 'Very Good Run'
+    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_bad_run(username, normalrunquality, levelrun, experiencegain):
-    return username + ' | Bad Run [x' + normalrunquality + '] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
+    try:
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'br'}, 1))[0]['text'], use_aliases=True)
+    except:
+        message = 'Bad Run'
+    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_good_run(username, normalrunquality, levelrun, experiencegain):
-    return username + ' | Good Run [x' + normalrunquality + '] - You beat the dungeon level [' + levelrun + '] - Experience Gained: ' + experiencegain + ' PogChamp'
+    try:
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'gr'}, 1))[0]['text'], use_aliases=True)
+    except:
+        message = 'Good Run'
+    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_failed(username, levelrun):
-    return username + ', you failed to beat the dungeon level [' + levelrun + '] - No experience gained! FeelsBadMan'
+    try:
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'fail'}, 1))[0]['text'], use_aliases=True)
+    except:
+        message = 'Failed Run'
+    return username + ' | ' + message + ' | No experience gained! FeelsBadMan'
 
 def dungeon_already_entered(username, timeremaining):
     return username + ', you have already entered the dungeon recently, ' + timeremaining + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True)
@@ -129,6 +155,9 @@ def leaving_channel(name):
 def list_channels(list):
     return '[' + ', '.join(list) + ']'
 
+def list_suggestions(list):
+    return '[' + ', '.join(str(i) for i in list) + ']'
+
 reset_cooldown = 'Cooldowns reset for all users' + emoji.emojize(' :stopwatch:', use_aliases=True)
 
 def tag_message(user, tag):
@@ -136,6 +165,8 @@ def tag_message(user, tag):
 
 def error_message(error):
     return emoji.emojize(':x: ', use_aliases=True) + str(error)
+
+add_text_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +text <vgr/vbr/gr/br/fail> <message>)'
 
 add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +channel <name> (optional: <global cooldown> <user cooldown>)'
 

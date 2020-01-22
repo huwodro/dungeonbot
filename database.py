@@ -8,6 +8,7 @@ USERS = 'UserStats'
 TAGS = 'UserTags'
 CHANNELS = 'Channels'
 SUGGESTIONS = 'Suggestions'
+TEXT = 'DungeonText'
 
 if auth.authentication:
     client = MongoClient('mongodb://' + auth.db_user + ':' + auth.db_pwd + '@' + auth.db_host + ':' + str(auth.db_port) + '/')
@@ -39,3 +40,9 @@ class MongoDatabase:
     def find_one_by_id(self, i, **options):
         options.update(limit=1)
         return self.find_one({ '_id': i }, **options)
+
+    def get_random_documents(self, size):
+        return db[self.collection].aggregate([{ '$sample': { 'size': size }}])
+
+    def get_random_documents_by_match(self, match, size):
+        return db[self.collection].aggregate([{ '$match': match }, { '$sample': { 'size': size } }])

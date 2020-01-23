@@ -21,35 +21,35 @@ def dungeon_too_low_level(username, dungeonlevel):
 
 def dungeon_very_bad_run(username, experiencegain):
     try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vbr'}, 1))[0]['text'], use_aliases=True)
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vbr'}, 1))[0]['text'])
     except:
         message = 'Very Bad Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_very_good_run(username, experiencegain):
     try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vgr'}, 1))[0]['text'], use_aliases=True)
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vgr'}, 1))[0]['text'])
     except:
         message = 'Very Good Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_bad_run(username, experiencegain):
     try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'br'}, 1))[0]['text'], use_aliases=True)
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'br'}, 1))[0]['text'])
     except:
         message = 'Bad Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_good_run(username, experiencegain):
     try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'gr'}, 1))[0]['text'], use_aliases=True)
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'gr'}, 1))[0]['text'])
     except:
         message = 'Good Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
 def dungeon_failed(username):
     try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'fail'}, 1))[0]['text'], use_aliases=True)
+        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'fail'}, 1))[0]['text'])
     except:
         message = 'Failed Run'
     return username + ' | ' + message + ' | No experience gained! FeelsBadMan'

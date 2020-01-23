@@ -198,7 +198,7 @@ def joinchannel(currentchannel, channel, global_cooldown, user_cooldown):
                 'user_cooldown': user_cooldown,
                 'message_queued': 0
             }}, upsert=True)
-            db(opt.TAGS).update_one(name, {'$set': { 'moderator': 1 } }, upsert=True)
+            db(opt.TAGS).update_one(checkusername(name), {'$set': { 'moderator': 1 } }, upsert=True)
             sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
             repo = git.Repo(search_parent_directories=True)
             branch = repo.active_branch.name
@@ -214,6 +214,7 @@ def partchannel(channel):
         partchannelthread = threading.Thread(target = queuemessage, args=(messages.leaving_channel(checkusername(channel)), 0, channel))
         partchannelthread.start()
         db(opt.CHANNELS).delete_one(channel)
+        db(opt.TAGS).update_one(checkusername(channel), {'$unset': { 'moderator': '' } }, upsert=True)
         sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
 
 def listchannels(channel):

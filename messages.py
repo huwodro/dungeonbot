@@ -19,35 +19,35 @@ def startup_message(branch, sha):
 def dungeon_too_low_level(username, dungeonlevel):
     return username + ', the Dungeon [' + dungeonlevel + "] is too low level for you to enter. You won't gain any experience!" + emoji.emojize(':crossed_swords:', use_aliases=True)
 
-def dungeon_very_bad_run(username, levelrun, experiencegain):
+def dungeon_very_bad_run(username, experiencegain):
     try:
         message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vbr'}, 1))[0]['text'], use_aliases=True)
     except:
         message = 'Very Bad Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_very_good_run(username, levelrun, experiencegain):
+def dungeon_very_good_run(username, experiencegain):
     try:
         message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vgr'}, 1))[0]['text'], use_aliases=True)
     except:
         message = 'Very Good Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_bad_run(username, normalrunquality, levelrun, experiencegain):
+def dungeon_bad_run(username, experiencegain):
     try:
         message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'br'}, 1))[0]['text'], use_aliases=True)
     except:
         message = 'Bad Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_good_run(username, normalrunquality, levelrun, experiencegain):
+def dungeon_good_run(username, experiencegain):
     try:
         message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'gr'}, 1))[0]['text'], use_aliases=True)
     except:
         message = 'Good Run'
     return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_failed(username, levelrun):
+def dungeon_failed(username):
     try:
         message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'fail'}, 1))[0]['text'], use_aliases=True)
     except:

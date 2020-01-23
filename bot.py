@@ -79,12 +79,12 @@ def raidevent():
             else:
                 userWord = ' users'
             for user in raidusers:
-                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 150)
+                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 155)
             util.queuemessage(messages.raid_event_start(str(len(raidusers)), userWord, str(successrate/10)), 1)
             time.sleep(3)
             raidsuccess = random.randint(1, 1001)
             if raidsuccess <= successrate:
-                experiencegain = int(raidlevel**1.2 * 250 / len(raidusers))
+                experiencegain = int(raidlevel**1.2 * 285 / len(raidusers))
                 util.queuemessage(messages.raid_event_win(str(len(raidusers)), userWord, str(raidlevel), str(experiencegain)), 1)
                 for user in raidusers:
                     db(opt.USERS).update_one(user[0], {'$inc': {
@@ -257,7 +257,7 @@ while True:
 
                     if params[0] == 'text':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             modes = ['vgr', 'vbr', 'gr', 'br', 'fail']
                             try:
                                 if params[1] in modes:
@@ -269,7 +269,7 @@ while True:
 
                     if params[0] == 'cs':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             try:
                                 util.checksuggestion(username, channel, int(params[1]))
                             except:
@@ -283,7 +283,7 @@ while True:
 
                     if params[0] == 'rs':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             try:
                                 util.removesuggestion(username, channel, int(params[1]))
                             except IndexError:
@@ -293,7 +293,7 @@ while True:
 
                     if params[0] == 'add':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             try:
                                 util.joinchannel(channel, params[1], float(params[2]), float(params[3]))
                             except IndexError:
@@ -308,15 +308,22 @@ while True:
 
                     if params[0] == 'part':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
-                            try:
-                                util.partchannel(params[1])
-                            except IndexError:
-                                util.queuemessage(messages.part_channel_error, 0, channel)
+                        if admin is not None:
+                            if admin.get('admin') == 1:
+                                try:
+                                    util.partchannel(params[1])
+                                except IndexError:
+                                    util.queuemessage(messages.part_channel_error, 0, channel)
+                            elif admin.get('moderator') == 1:
+                                try:
+                                    if params[1] == username.casefold():
+                                        util.partchannel(params[1])
+                                except IndexError:
+                                    util.partchannel(username.casefold())
 
                     if params[0] == 'cd' or params[0] == 'cooldown':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             try:
                                 util.setcooldown(params[1], params[2], float(params[3]), channel)
                             except IndexError:
@@ -326,22 +333,22 @@ while True:
 
                     if params[0] == 'channels':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             util.listchannels(channel)
 
                     if params[0] == 'eval':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             util.runeval(channel, message[len(params[0])+2:])
 
                     if params[0] == 'exec':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             util.runexec(channel, message[len(params[0])+2:])
 
                     if params[0] == 'tag':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             try:
                                 util.usertag(channel, params[1], params[2])
                             except IndexError as e:
@@ -349,10 +356,10 @@ while True:
 
                     if params[0] == 'resetcd':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             util.resetcd(channel)
 
                     if params[0] == 'restart':
                         admin = db(opt.TAGS).find_one_by_id(username)
-                        if admin is not None and admin['admin'] == 1:
+                        if admin is not None and admin.get('admin') == 1:
                             util.restart()

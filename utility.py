@@ -198,6 +198,7 @@ def joinchannel(currentchannel, channel, global_cooldown, user_cooldown):
                 'user_cooldown': user_cooldown,
                 'message_queued': 0
             }}, upsert=True)
+            db(opt.TAGS).update_one(name, {'$set': { 'moderator': 1 } }, upsert=True)
             sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
             repo = git.Repo(search_parent_directories=True)
             branch = repo.active_branch.name

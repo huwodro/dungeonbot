@@ -57,17 +57,17 @@ def enterdungeon(username, message, channel):
                 rarerunquality = random.randint(1, 101)
                 if rarerunquality <= 10:
                     experiencegain = int(experiencegain*0.5)
-                    util.sendmessage(messages.dungeon_very_bad_run(username, str(levelrun), str(experiencegain)), channel)
+                    util.sendmessage(messages.dungeon_very_bad_run(username, str(experiencegain)), channel)
                 elif rarerunquality >= 90:
                     experiencegain = int(experiencegain*1.5)
-                    util.sendmessage(messages.dungeon_very_good_run(username, str(levelrun), str(experiencegain)), channel)
+                    util.sendmessage(messages.dungeon_very_good_run(username, str(experiencegain)), channel)
                 else:
                     normalrunquality = random.randint(75,126)
                     experiencegain = int(experiencegain*normalrunquality*0.01)
                     if normalrunquality < 100:
-                        util.sendmessage(messages.dungeon_bad_run(username, str(round(normalrunquality*0.01, 2)), str(levelrun), str(experiencegain)), channel)
+                        util.sendmessage(messages.dungeon_bad_run(username, str(experiencegain)), channel)
                     else:
-                        util.sendmessage(messages.dungeon_good_run(username, str(round(normalrunquality*0.01, 2)), str(levelrun), str(experiencegain)), channel)
+                        util.sendmessage(messages.dungeon_good_run(username, str(experiencegain)), channel)
                 db(opt.USERS).update_one(username, {'$inc': {
                     'total_experience': experiencegain,
                     'current_experience': experiencegain,
@@ -88,7 +88,7 @@ def enterdungeon(username, message, channel):
             else:
                 db(opt.USERS).update_one(username, { '$inc': { 'dungeon_losses': 1 } })
                 db(opt.GENERAL).update_one(0, { '$inc': { 'total_losses': 1 } })
-                util.sendmessage(messages.dungeon_failed(username, str(levelrun)), channel)
+                util.sendmessage(messages.dungeon_failed(username), channel)
             db(opt.USERS).update_one(username, { '$inc': { 'dungeons': 1 } })
             db(opt.GENERAL).update_one(0, { '$inc': { 'total_dungeons': 1 } })
         else:

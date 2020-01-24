@@ -1,3 +1,4 @@
+from collections import defaultdict
 import math
 import random
 import re
@@ -21,6 +22,7 @@ botprefix = '+'
 global raidstart
 raidstart = False
 raidusers = []
+usersbychannel = defaultdict(list)
 
 util.start()
 
@@ -79,27 +81,36 @@ def raidevent():
             else:
                 userWord = ' users'
             for user in raidusers:
-                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[0])['user_level'] / raidlevel * 155)
+                successrate += math.ceil(db(opt.USERS).find_one_by_id(user[1])['user_level'] / raidlevel * 175)
             util.queuemessage(messages.raid_event_start(str(len(raidusers)), userWord, str(successrate/10)), 1)
             time.sleep(3)
             raidsuccess = random.randint(1, 1001)
             if raidsuccess <= successrate:
-                experiencegain = int(raidlevel**1.2 * 285 / len(raidusers))
+                experiencegain = int(raidlevel**1.2 * 300 / len(raidusers))
                 util.queuemessage(messages.raid_event_win(str(len(raidusers)), userWord, str(raidlevel), str(experiencegain)), 1)
-                for user in raidusers:
-                    db(opt.USERS).update_one(user[0], {'$inc': {
-                        'total_experience': experiencegain,
-                        'current_experience': experiencegain,
-                        'raid_wins': 1,
-                        'raids': 1
-                    }})
-                    if (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
-                        while (((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user[0])['current_experience'] <= 0:
-                            db(opt.USERS).update_one(user[0], {'$inc': {
-                                'user_level': 1,
-                                'current_experience': -(((db(opt.USERS).find_one_by_id(user[0])['user_level']+1)**2)*100)
-                            }})
-                        util.queuemessage(messages.user_level_up(user[0], str(db(opt.USERS).find_one_by_id(user[0])['user_level'])), 0, user[1])
+                for user, channel in raidusers:
+                    usersbychannel[user].append(channel)
+                for channel in usersbychannel.items():
+                    levelupusers = []
+                    for user in channel[1]:
+                        db(opt.USERS).update_one(user, {'$inc': {
+                            'total_experience': experiencegain,
+                            'current_experience': experiencegain,
+                            'raid_wins': 1,
+                            'raids': 1
+                        }})
+                        if (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
+                            while (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
+                                db(opt.USERS).update_one(user, {'$inc': {
+                                    'user_level': 1,
+                                    'current_experience': -(((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100)
+                                }})
+                            levelupusers.append(user)
+                    if levelupusers:
+                        i = 1
+                        for user in levelupusers[::10]:
+                            util.queuemessage(messages.users_level_up(levelupusers[levelupusers.index(user):10*i]), 0, channel[0])
+                            i += 1
                 db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experiencegain,
                     'total_raid_wins': 1
@@ -245,7 +256,7 @@ while True:
                                 if username not in dict(raidusers):
                                     user = db(opt.USERS).find_one_by_id(username)
                                     if user is not None and user.get('user_level') is not None:
-                                        raidusers.append((username, channel))
+                                        raidusers.append((channel, username))
                                     else:
                                         registerthread = threading.Thread(target = util.queuemessage, args=(messages.you_not_registered(username), 0, channel))
                                         registerthread.start()

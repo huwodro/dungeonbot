@@ -101,6 +101,9 @@ def dungeon_level_up(dungeonlevel):
 def user_level_up(username, userlevel):
     return username + ' just leveled up! Level [' + userlevel + '] PogChamp'
 
+def users_level_up(users):
+    return ', '.join(users) + ' just leveled up! PogChamp'
+
 def user_already_registered(username):
     return username + ', you are already a registered user! 4Head'
 

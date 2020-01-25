@@ -8,6 +8,7 @@ db_host = 'localhost'
 db_port = 27017
 
 token = ''
+bearer = 'Bearer ' + '' # Token without oauth:
 clientID = ''
 nickname = ''
 defaultchannel = ''

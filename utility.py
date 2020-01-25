@@ -204,32 +204,34 @@ def removesuggestion(username, channel, id):
 
 def joinchannel(currentchannel, channel, global_cooldown, user_cooldown):
     try:
-        name = checkusername(channel).lower()
-        if name:
-            db(opt.CHANNELS).update_one(name, {'$set': {
+        id = checkuserid(channel)
+        if id:
+            db(opt.CHANNELS).update_one(checkusername(id).lower(), {'$set': {
                 'online': 1,
                 'cmdusetime': time.time(),
                 'global_cooldown': global_cooldown,
                 'user_cooldown': user_cooldown,
                 'message_queued': 0
             }}, upsert=True)
-            db(opt.TAGS).update_one(checkusername(name), {'$set': { 'moderator': 1 } }, upsert=True)
-            sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
+            db(opt.TAGS).update_one(checkusername(id), {'$set': { 'moderator': 1 } }, upsert=True)
+            sock.send(('JOIN #' + channel + '\r\n').encode('utf-8'))
             repo = git.Repo(search_parent_directories=True)
             branch = repo.active_branch.name
             sha = repo.head.object.hexsha
-            sendmessage(messages.startup_message(branch, sha), name)
+            sendmessage(messages.startup_message(branch, sha), channel)
     except AttributeError:
         queuemessage(messages.no_channel_error(channel), 0, currentchannel)
 
 def partchannel(channel):
+    print(channel)
+    id = checkuserid(channel)
     channel = db(opt.CHANNELS).find_one_by_id(channel)
     if channel:
         channel = channel['_id']
-        partchannelthread = threading.Thread(target = queuemessage, args=(messages.leaving_channel(checkusername(channel)), 0, channel))
+        partchannelthread = threading.Thread(target = queuemessage, args=(messages.leaving_channel(checkusername(id)), 0, channel))
         partchannelthread.start()
         db(opt.CHANNELS).delete_one(channel)
-        db(opt.TAGS).update_one(checkusername(channel), {'$unset': { 'moderator': '' } }, upsert=True)
+        db(opt.TAGS).update_one(checkusername(id), {'$unset': { 'moderator': '' } }, upsert=True)
         sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
 
 def listchannels(channel):
@@ -279,8 +281,8 @@ def restart():
 
 def usertag(channel, target, tag):
     taglist = ['admin', 'moderator']
-    user = checkusername(target)
-    if user:
+    id = checkuserid(target)
+    if id:
         if tag.lower() in taglist:
-            db(opt.TAGS).update_one(user, {'$set': {tag.lower(): 1} }, upsert=True)
-            queuemessage(messages.tag_message(user, tag), 0, channel)
+            db(opt.TAGS).update_one(checkusername(id), {'$set': {tag.lower(): 1} }, upsert=True)
+            queuemessage(messages.tag_message(checkusername(id), tag), 0, channel)

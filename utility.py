@@ -42,9 +42,9 @@ def connect(manual = False):
         else:
             os._exit(1) # Shuts down script if called from initialization
 
-def checkusername(user):
-    headers = { 'Client-ID': auth.clientID }
-    params = (('login', user),)
+def checkusername(id):
+    headers = { 'Authorization': auth.bearer }
+    params = (('id', int(id)),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
     if 'error' in response:
         return
@@ -52,6 +52,19 @@ def checkusername(user):
         return
     elif 'data' in response:
         return response['data'][0]['display_name']
+    else:
+        return
+
+def checkuserid(user):
+    headers = { 'Authorization': auth.bearer }
+    params = (('login', user),)
+    response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
+    if 'error' in response:
+        return
+    elif not response['data']:
+        return
+    elif 'data' in response:
+        return response['data'][0]['id']
     else:
         return
 
@@ -115,6 +128,9 @@ def gitinfo():
             sendmessage(messages.startup_message(branch, sha), channel['_id'])
 
 def start():
+    defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
+    if defaultadmin == None:
+        db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
     defaultchannel = db(opt.CHANNELS).find_one_by_id(auth.defaultchannel)
     if defaultchannel == None:
         db(opt.CHANNELS).update_one(auth.defaultchannel, { '$set': schemes.CHANNELS }, upsert=True)
@@ -122,13 +138,11 @@ def start():
     defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
     if defaultdungeon == None:
         db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
-    defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
-    if defaultadmin == None:
-        db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
     gitinfo()
 
 def checkuserregistered(username, channel, req=None):
-    user = db(opt.USERS).find_one_by_id(username)
+    id = checkuserid(username)
+    user = db(opt.USERS).find_one_by_id(id)
     sameuser = req == username if req is not None else True
     if sameuser:
         if user and user.get('user_level'):
@@ -136,7 +150,8 @@ def checkuserregistered(username, channel, req=None):
         else:
             sendmessage(messages.you_not_registered(username), channel)
     else:
-        target = db(opt.USERS).find_one_by_id(req)
+        id = checkuserid(req)
+        target = db(opt.USERS).find_one_by_id(id)
         if target:
             return True
         else:

@@ -10,8 +10,7 @@ commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +e
 
 bot_description = 'Dungeon Bot MrDestructoid Made by Huwodro. For a list of commands, type +commands'
 
-def pong(latency):
-    return 'Dungeon Bot [' + latency + ' ms] MrDestructoid For a list of commands, type +commands'
+pong = 'Dungeon Bot MrDestructoid For a list of commands, type +commands'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
@@ -66,7 +65,7 @@ def dungeon_master(topuser, highestexperience, userlevel):
 def dungeon_masters(numberoftopusers, highestexperience, userlevel):
     return 'There are ' + numberoftopusers + ' users at Level [' + userlevel + '] with ' + highestexperience + ' experience, no one is currently Dungeon Master! FeelsBadMan'
 
-dungeon_no_master = 'There is currently no Dungeon Master FeelsBadMan'
+dungeon_no_master = 'There is currently no Dungeon Master! FeelsBadMan'
 
 def dungeon_general_stats(dungeons, dungeonword, wins, winword, losses, loseword, winrate):
     return 'General Dungeon Stats: ' + dungeons + dungeonword + ' / ' + wins + winword +' / ' + losses + loseword + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_blue_diamond:', use_aliases=True)

@@ -250,7 +250,7 @@ while True:
 
                         if params[0] == 'join':
                             if raidstart:
-                                if username not in dict(raidusers):
+                                if not [user for user in raidusers if username in user]:
                                     id = util.checkuserid(username)
                                     user = db(opt.USERS).find_one_by_id(id)
                                     if user is not None and user.get('user_level') is not None:

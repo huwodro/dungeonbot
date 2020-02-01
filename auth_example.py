@@ -11,8 +11,8 @@ token = ''
 bearer = 'Bearer ' + '' # Token without oauth:
 clientID = ''
 nickname = ''
-defaultchannel = ''
+default_channel = ''
 
-defaultadmin = 'Huwodro'
+default_admin = 'Huwodro'
 
 reconnect_timer = 10

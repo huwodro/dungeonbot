@@ -1,133 +1,101 @@
-import random
-
 import emoji
 
-import database as opt
-
-db = opt.MongoDatabase
-
 commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +raidstats | +uptime | +suggest'
-
-bot_description = 'Dungeon Bot MrDestructoid Made by Huwodro. For a list of commands, type +commands'
 
 pong = 'Dungeon Bot MrDestructoid For a list of commands, type +commands'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
 
-def dungeon_too_low_level(username, dungeonlevel):
-    return username + ', the Dungeon [' + dungeonlevel + "] is too low level for you to enter. You won't gain any experience!" + emoji.emojize(':crossed_swords:', use_aliases=True)
+def dungeon_too_low_level(username, dungeon_level):
+    return username + ', the Dungeon [' + dungeon_level + "] is too low level for you to enter. You won't gain any experience!" + emoji.emojize(':crossed_swords:', use_aliases=True)
 
-def dungeon_very_bad_run(username, experiencegain):
-    try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vbr'}, 1))[0]['text'])
-    except:
-        message = 'Very Bad Run'
-    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
+def dungeon_very_bad_run(username, message, experience_gain):
+    return username + ' | ' + message + ' | Experience Gained: ' + experience_gain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_very_good_run(username, experiencegain):
-    try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'vgr'}, 1))[0]['text'])
-    except:
-        message = 'Very Good Run'
-    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
+def dungeon_very_good_run(username, message, experience_gain):
+    return username + ' | ' + message + ' | Experience Gained: ' + experience_gain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_bad_run(username, experiencegain):
-    try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'br'}, 1))[0]['text'])
-    except:
-        message = 'Bad Run'
-    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
+def dungeon_bad_run(username, message, experience_gain):
+    return username + ' | ' + message + ' | Experience Gained: ' + experience_gain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_good_run(username, experiencegain):
-    try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'gr'}, 1))[0]['text'])
-    except:
-        message = 'Good Run'
-    return username + ' | ' + message + ' | Experience Gained: ' + experiencegain + emoji.emojize(':gem:', use_aliases=True)
+def dungeon_good_run(username, message, experience_gain):
+    return username + ' | ' + message + ' | Experience Gained: ' + experience_gain + emoji.emojize(':gem:', use_aliases=True)
 
-def dungeon_failed(username):
-    try:
-        message = emoji.emojize(list(db(opt.TEXT).get_random_documents_by_match({'mode': 'fail'}, 1))[0]['text'])
-    except:
-        message = 'Failed Run'
+def dungeon_failed(username, message):
     return username + ' | ' + message + ' | No experience gained! FeelsBadMan'
 
-def dungeon_already_entered(username, timeremaining):
-    return username + ', you have already entered the dungeon recently, ' + timeremaining + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True)
+def dungeon_already_entered(username, time_remaining):
+    return username + ', you have already entered the dungeon recently, ' + time_remaining + ' left until you can enter again!' + emoji.emojize(' :hourglass:', use_aliases=True)
 
-def dungeon_level(dungeonlevel):
-    return emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + dungeonlevel + ']'
+def dungeon_level(dungeon_level):
+    return emoji.emojize(':shield:', use_aliases=True) + ' Dungeon Level: [' + dungeon_level + ']'
 
-def dungeon_master(topuser, highestexperience, userlevel):
-    return topuser + ' is the current Dungeon Master at Level [' + userlevel + '] with ' + highestexperience + ' experience!' + emoji.emojize(' :crown:', use_aliases=True)
+def dungeon_master(top_user, user_level, highest_experience):
+    return top_user + ' is the current Dungeon Master at Level [' + user_level + '] with ' + highest_experience + ' experience!' + emoji.emojize(' :crown:', use_aliases=True)
 
-def dungeon_masters(numberoftopusers, highestexperience, userlevel):
-    return 'There are ' + numberoftopusers + ' users at Level [' + userlevel + '] with ' + highestexperience + ' experience, no one is currently Dungeon Master! FeelsBadMan'
+def dungeon_masters(number_of_top_users, user_level, highest_experience):
+    return 'There are ' + number_of_top_users + ' users at Level [' + user_level + '] with ' + highest_experience + ' experience, no one is currently Dungeon Master! FeelsBadMan'
 
 dungeon_no_master = 'There is currently no Dungeon Master! FeelsBadMan'
 
-def dungeon_general_stats(dungeons, dungeonword, wins, winword, losses, loseword, winrate):
-    return 'General Dungeon Stats: ' + dungeons + dungeonword + ' / ' + wins + winword +' / ' + losses + loseword + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_blue_diamond:', use_aliases=True)
+def dungeon_general_stats(dungeons, dungeon_word, wins, win_word, losses, lose_word, winrate):
+    return 'General Dungeon Stats: ' + dungeons + dungeon_word + ' / ' + wins + win_word +' / ' + losses + lose_word + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_blue_diamond:', use_aliases=True)
 
-def raid_general_stats(raids, raidword, wins, winword, losses, loseword, winrate):
-    return 'General Raid Stats: ' + raids + raidword + ' / ' + wins + winword +' / ' + losses + loseword + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_orange_diamond:', use_aliases=True)
+def raid_general_stats(raids, raid_word, wins, win_word, losses, lose_word, winrate):
+    return 'General Raid Stats: ' + raids + raid_word + ' / ' + wins + win_word +' / ' + losses + lose_word + ' = ' + winrate + '% Winrate' + emoji.emojize(' :large_orange_diamond:', use_aliases=True)
 
-def raid_event_appear(raidlevel, time):
-    return 'A Raid Event at Level [' + raidlevel + '] has appeared. Type +join to join the raid! The raid will begin in ' + time + ' seconds!' + emoji.emojize(':zap:', use_aliases=True)
+def raid_event_appear(raid_level, time):
+    return 'A Raid Event at Level [' + raid_level + '] has appeared. Type +join to join the raid! The raid will begin in ' + time + ' seconds!' + emoji.emojize(':zap:', use_aliases=True)
 
 def raid_event_countdown(time):
     return 'The raid will begin in ' + time + ' seconds. Type +join to join the raid!' + emoji.emojize(':zap:', use_aliases=True)
 
-def raid_event_no_users():
-    return '0 users joined the raid!' + emoji.emojize(':skull_and_crossbones:', use_aliases=True)
+raid_event_no_users = '0 users joined the raid!' + emoji.emojize(':skull_and_crossbones:', use_aliases=True)
 
-def raid_event_start(users, userword, successrate):
-    return 'The raid has begun with ' + users + userword + '! [' + successrate + '%]' + emoji.emojize(':crossed_swords:', use_aliases=True)
+def raid_event_start(users, user_word, success_rate):
+    return 'The raid has begun with ' + users + user_word + '! [' + success_rate + '%]' + emoji.emojize(':crossed_swords:', use_aliases=True)
 
-def raid_event_win(users, userword, raidlevel, experiencegain):
-    return users + userword + ' beat the raid level [' + raidlevel + '] - ' + experiencegain + ' experience rewarded!' + emoji.emojize(':gem:', use_aliases=True)
+def raid_event_win(users, user_word, raid_level, experience_gain):
+    return users + user_word + ' beat the raid level [' + raid_level + '] - ' + experience_gain + ' experience rewarded!' + emoji.emojize(':gem:', use_aliases=True)
 
-def raid_event_failed(users, userword, raidlevel):
-    return users + userword + ' failed to beat the raid level [' + raidlevel + '] - No experience rewarded!' + emoji.emojize(':skull:', use_aliases=True)
+def raid_event_failed(users, user_word, raid_level):
+    return users + user_word + ' failed to beat the raid level [' + raid_level + '] - No experience rewarded!' + emoji.emojize(':skull:', use_aliases=True)
 
 def dungeon_uptime(uptime):
     return 'Dungeon Uptime: ' + uptime + emoji.emojize(' :stopwatch:', use_aliases=True)
 
-def dungeon_level_up(dungeonlevel):
-    return 'DING PogChamp Dungeon Level [' + dungeonlevel + ']'
+def user_register(username, dungeon_level):
+    return 'DING ' + emoji.emojize(':bell:', use_aliases=True) + ' Thank you for registering ' + username + ' | Dungeon leveled up! Level [' + dungeon_level + ']'
 
-def user_level_up(username, userlevel):
-    return username + ' just leveled up! Level [' + userlevel + '] PogChamp'
+def user_level_up(username, user_level):
+    return username + ' just leveled up! Level [' + user_level + '] PogChamp'
 
 def users_level_up(users):
     return ', '.join(users) + ' just leveled up! PogChamp'
 
+def user_register(username, dungeon_level):
+    return 'DING ' + emoji.emojize(':bell:', use_aliases=True) + ' Thank you for registering ' + username + ' | Dungeon leveled up! Level [' + dungeon_level + ']'
+
 def user_already_registered(username):
-    return username + ', you are already a registered user! 4Head'
+    return username + ', you are already registered! ' + emoji.emojize(':warning:', use_aliases=True)
 
-def user_experience(username, userexperience):
-    return username + "'s total experience: " +  userexperience + emoji.emojize(' :diamonds:', use_aliases=True)
+def user_experience(username, user_experience):
+    return username + "'s total experience: " +  user_experience + emoji.emojize(' :diamonds:', use_aliases=True)
 
-def user_no_experience(username):
-    return username + ', no experience found for that user!' + emoji.emojize(' :warning:', use_aliases=True)
+def user_level(username, user_level, current_experience, next_experience):
+    return username + "'s current level: [" + user_level + '] - XP (' + current_experience + ' / ' + next_experience + ')' + emoji.emojize(' :diamonds:', use_aliases=True)
 
-def user_level(username, userlevel, currentexperience, nextexperience):
-    return username + "'s current level: [" + userlevel + '] - XP (' + currentexperience + ' / ' + nextexperience + ')' + emoji.emojize(' :diamonds:', use_aliases=True)
+def no_entered_dungeons (username):
+    return username + ", you haven't entered any dungeons!" + emoji.emojize(' :warning:')
 
-def user_no_level(username):
-    return username + ', no level found for that user!' + emoji.emojize (' :warning:')
-
-def you_no_entered_dungeons (username):
-    return username + ", you haven't entered any dungeons! NotLikeThis"
-
-def user_stats(username, wins, winword, losses, loseword, winrate):
-    return username + "'s winrate: " + wins + winword +' / ' + losses + loseword + ' = ' + winrate + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True)
+def user_stats(username, wins, win_word, losses, lose_word, winrate):
+    return username + "'s winrate: " + wins + win_word +' / ' + losses + lose_word + ' = ' + winrate + '% Winrate' + emoji.emojize(' :diamonds:', use_aliases=True)
 
 def user_no_entered_dungeons(username):
-    return username + ", that user hasn't entered any dungeons! NotLikeThis"
+    return username + ", that user hasn't entered any dungeons!" + emoji.emojize(' :warning:')
 
-def you_not_registered(username):
+def not_registered(username):
     return username + ', you are not a registered user, type +register to register!' + emoji.emojize(' :game_die:', use_aliases=True)
 
 def user_not_registered(username):
@@ -164,6 +132,9 @@ reset_cooldown = 'Cooldowns reset for all users' + emoji.emojize(' :stopwatch:',
 
 def tag_message(user, tag):
     return user + ' set to ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True)
+
+def already_tag_message(user, tag):
+    return user + ' is already ' + tag.capitalize() + emoji.emojize(' :bell:', use_aliases=True)
 
 def error_message(error):
     return emoji.emojize(':x: ', use_aliases=True) + str(error)

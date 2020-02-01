@@ -31,8 +31,10 @@ def connect(manual = False):
         sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
         sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
         for channel in db.raw[opt.CHANNELS].find():
-            sock.send(('JOIN #' + channel['_id'] + '\r\n').encode('utf-8'))
-        sys.stdout.write('SOCKET CONNECTED\n')
+            sock.send(('JOIN #' + get_login_name(channel['_id']) + '\r\n').encode('utf-8'))
+        t = time.localtime()
+        current_time = time.strftime("%H:%M:%S", t)
+        sys.stdout.write(current_time + ': SOCKET CONNECTED\n')
         sys.stdout.flush()
     except socket.error as e:
         sys.stderr.write('SOCKET ERROR: ' + str(e.errno) + '\n')
@@ -42,38 +44,34 @@ def connect(manual = False):
         else:
             os._exit(1) # Shuts down script if called from initialization
 
-def checkusername(id):
+def get_display_name(id):
     headers = { 'Authorization': auth.bearer }
-    params = (('id', int(id)),)
+    params = (('id', id),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    if 'error' in response:
-        return
-    elif not response['data']:
-        return
-    elif 'data' in response:
+    try:
         return response['data'][0]['display_name']
-    else:
+        print(response['data'][0]['display_name'])
+    except:
         return
 
-def checkuserid(user):
+def get_login_name(id):
+    headers = { 'Authorization': auth.bearer }
+    params = (('id', id),)
+    response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
+    try:
+        return response['data'][0]['login']
+        print(response['data'][0]['login'])
+    except:
+        return
+
+def get_user_id(user):
     headers = { 'Authorization': auth.bearer }
     params = (('login', user),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    if 'error' in response:
-        return
-    elif not response['data']:
-        return
-    elif 'data' in response:
+    try:
         return response['data'][0]['id']
-    else:
+    except:
         return
-
-def opendungeon(username):
-    db(opt.USERS).update_one(username, {'$set': {
-        'entered': 0,
-        'last_entry': 0,
-        'next_entry': 0
-    }})
 
 def pong():
     sock.send(('PONG :tmi.twitch.tv\r\n').encode('utf-8'))
@@ -88,95 +86,97 @@ def get_cooldown_bypass_symbol():
         last_time_symbol = 0
         return ' \U000e0000'
 
-def sendmessage(message, channel):
+def send_message(message, channel):
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
 
-queuemessage_lock = threading.Lock()
+queue_message_lock = threading.Lock()
 
-def queuemessage(message, sendto, channel = None):
-    queuemessage_lock.acquire()
+def queue_message(message, mode, channel = None):
+    queue_message_lock.acquire()
     if channel == None:
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
                 db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 1 } } )
     else:
-        db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 1 } } )
+        channel_id = get_user_id(channel)
+        db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
-    if sendto == 0:
-        msg = 'PRIVMSG #' + channel + ' :' + message
+    if mode == 0:
+        msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
         sock.send((msg + '\r\n').encode('utf-8'))
-        db(opt.CHANNELS).update_one(channel, { '$set': { 'message_queued': 0 } } )
+        db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 0 } } )
     else:
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                msg = 'PRIVMSG #' + channel['_id'] + ' :' + message
+                msg = 'PRIVMSG #' + get_login_name(channel['_id']) + ' :' + message + get_cooldown_bypass_symbol()
                 sock.send((msg + '\r\n').encode('utf-8'))
                 db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 0 } } )
-    queuemessage_lock.release()
+    queue_message_lock.release()
 
 def whisper(user, message, channel):
     msg = 'PRIVMSG #' + channel + ' :.w ' + user + ' ' + message
     sock.send((msg + '\r\n').encode('utf-8'))
 
-def gitinfo():
+def git_info():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
     for channel in db.raw[opt.CHANNELS].find():
         if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-            sendmessage(messages.startup_message(branch, sha), channel['_id'])
+            send_message(messages.startup_message(branch, sha), get_login_name(channel['_id']))
 
 def start():
-    defaultadmin = db(opt.TAGS).find_one_by_id(auth.defaultadmin)
-    if defaultadmin == None:
-        db(opt.TAGS).update_one(auth.defaultadmin, {'$set': { 'admin': 1 } }, upsert=True)
-    defaultchannel = db(opt.CHANNELS).find_one_by_id(auth.defaultchannel)
-    if defaultchannel == None:
-        db(opt.CHANNELS).update_one(auth.defaultchannel, { '$set': schemes.CHANNELS }, upsert=True)
+    default_admin_id = get_user_id(auth.default_admin)
+    default_admin = db(opt.TAGS).find_one_by_id(default_admin_id)
+    if default_admin == None:
+        db(opt.TAGS).update_one(default_admin_id, {'$set': { 'admin': 1 } }, upsert=True)
+    default_channel_id = get_user_id(auth.default_channel)
+    default_channel = db(opt.CHANNELS).find_one_by_id(default_channel_id)
+    if default_channel == None:
+        db(opt.CHANNELS).update_one(default_channel_id, { '$set': schemes.CHANNELS }, upsert=True)
     connect(True) # True for initialization
-    defaultdungeon = db(opt.GENERAL).find_one_by_id(0)
-    if defaultdungeon == None:
-        db(opt.GENERAL).update_one(0, { '$set': schemes.DUNGEON }, upsert=True)
-    gitinfo()
+    default_dungeon = db(opt.GENERAL).find_one_by_id(0)
+    if default_dungeon == None:
+        db(opt.GENERAL).update_one(0, { '$set': schemes.GENERAL }, upsert=True)
+    git_info()
 
-def checkuserregistered(username, channel, req=None):
-    id = checkuserid(username)
-    user = db(opt.USERS).find_one_by_id(id)
-    sameuser = req == username if req is not None else True
-    if sameuser:
+def check_if_registered(user, channel, req=None):
+    user = db(opt.USERS).find_one_by_id(user)
+    same_user = req == user if req else True
+    if same_user:
         if user and user.get('user_level'):
             return True
         else:
-            sendmessage(messages.you_not_registered(username), channel)
+            send_message(messages.not_registered(get_display_name(user['_id'])), channel)
     else:
-        id = checkuserid(req)
-        target = db(opt.USERS).find_one_by_id(id)
+        target = db(opt.USERS).find_one_by_id(req)
         if target:
             return True
         else:
-            sendmessage(messages.user_not_registered(username), channel)
+            send_message(messages.user_not_registered(get_display_name(user['_id'])), channel)
     return False
 
-def suggest(username, channel, message):
-    suggestions = db(opt.SUGGESTIONS).count_documents({})
-    if suggestions < 500:
-        try:
-            id = db(opt.SUGGESTIONS).find_one(sort=[('_id', -1)])['_id']
-        except:
-            id = 0
-        else:
-            id += 1
-        db(opt.SUGGESTIONS).update_one(id, {'$set': {
-            'user': username,
-            'suggestion': message
-        }}, upsert=True)
-        suggestionthread = threading.Thread(target = queuemessage, args=(messages.suggestion_message(username, str(id)), 0, channel))
-        suggestionthread.start()
+def suggest(user, channel, message):
+    if message != '':
+        suggestions = db(opt.SUGGESTIONS).count_documents({})
+        if suggestions < 500:
+            try:
+                id = db(opt.SUGGESTIONS).find_one(sort=[('_id', -1)])['_id']
+            except:
+                id = 0
+            else:
+                id += 1
+            db(opt.SUGGESTIONS).update_one(id, {'$set': {
+                'user': user,
+                'suggestion': message
+            }}, upsert=True)
+            suggestion_thread = threading.Thread(target = queue_message, args=(messages.suggestion_message(user, str(id)), 0, channel))
+            suggestion_thread.start()
 
 ### Admin Commands ###
 
-def dungeontext(mode, message):
+def dungeon_text(mode, message):
     texts = db(opt.TEXT).count_documents({})
     try:
         id = db(opt.TEXT).find_one(sort=[('_id', -1)])['_id']
@@ -189,89 +189,86 @@ def dungeontext(mode, message):
         'text': message
     }}, upsert=True)
 
-def checksuggestion(username, channel, id):
+def check_suggestion(user, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)['suggestion']
-    user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
-    whisper(username, messages.check_suggestion(suggestion, user, str(id)), channel)
+    suggestion_user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
+    whisper(get_display_name(user), messages.check_suggestion(suggestion, suggestion_user, str(id)), channel)
 
-def removesuggestion(username, channel, id):
+def remove_suggestion(user, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)
-    if suggestion is not None:
+    if suggestion:
         db(opt.SUGGESTIONS).delete_one(id)
-        whisper(username, messages.suggestion_removed(str(id)), channel)
+        whisper(get_display_name(user), messages.suggestion_removed(str(id)), channel)
     else:
-        whisper(username, messages.remove_suggestion_error, channel)
+        whisper(get_display_name(user), messages.remove_suggestion_error, channel)
 
-def joinchannel(currentchannel, channel, global_cooldown, user_cooldown):
+def join_channel(current_channel, channel, global_cooldown, user_cooldown):
     try:
-        id = checkuserid(channel)
-        if id:
-            db(opt.CHANNELS).update_one(checkusername(id).lower(), {'$set': {
+        user = get_user_id(channel)
+        if user:
+            db(opt.CHANNELS).update_one(user, {'$set': {
                 'online': 1,
                 'cmdusetime': time.time(),
                 'global_cooldown': global_cooldown,
                 'user_cooldown': user_cooldown,
                 'message_queued': 0
             }}, upsert=True)
-            db(opt.TAGS).update_one(checkusername(id), {'$set': { 'moderator': 1 } }, upsert=True)
+            db(opt.TAGS).update_one(user, {'$set': { 'moderator': 1 } }, upsert=True)
             sock.send(('JOIN #' + channel + '\r\n').encode('utf-8'))
             repo = git.Repo(search_parent_directories=True)
             branch = repo.active_branch.name
             sha = repo.head.object.hexsha
-            sendmessage(messages.startup_message(branch, sha), channel)
+            send_message(messages.startup_message(branch, sha), channel)
     except AttributeError:
-        queuemessage(messages.no_channel_error(channel), 0, currentchannel)
+        queue_message(messages.no_channel_error(channel), 0, current_channel)
 
-def partchannel(channel):
-    print(channel)
-    id = checkuserid(channel)
-    channel = db(opt.CHANNELS).find_one_by_id(channel)
-    if channel:
-        channel = channel['_id']
-        partchannelthread = threading.Thread(target = queuemessage, args=(messages.leaving_channel(checkusername(id)), 0, channel))
-        partchannelthread.start()
-        db(opt.CHANNELS).delete_one(channel)
-        db(opt.TAGS).update_one(checkusername(id), {'$unset': { 'moderator': '' } }, upsert=True)
-        sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
+def part_channel(channel):
+    user = db(opt.CHANNELS).find_one_by_id(get_user_id(channel))
+    if user:
+        part_channel_thread = threading.Thread(target = queue_message, args=(messages.leaving_channel(get_display_name(user['_id'])), 0, channel))
+        part_channel_thread.start()
+        db(opt.CHANNELS).delete_one(user['_id'])
+        db(opt.TAGS).update_one(user['_id'], {'$unset': { 'moderator': '' } }, upsert=True)
+        sock.send(('PART #' + get_login_name(user['_id']) + '\r\n').encode('utf-8'))
 
-def listchannels(channel):
-    joinedchannels = []
-    for joinedchannel in db.raw[opt.CHANNELS].find():
-        joinedchannels.append(joinedchannel['_id'])
-    queuemessage(messages.list_channels(joinedchannels), 0, channel)
+def list_channels(channel):
+    joined_channels = []
+    for joined_channel in db.raw[opt.CHANNELS].find():
+        joined_channels.append(get_display_name(joined_channel['_id']))
+    queue_message(messages.list_channels(joined_channels), 0, channel)
 
-def setcooldown(channel, mode, cooldown, currentchannel):
-    if db(opt.CHANNELS).find_one_by_id(channel):
+def set_cooldown(channel, mode, cooldown, current_channel):
+    channel_id = get_user_id(channel)
+    if db(opt.CHANNELS).find_one_by_id(channel_id):
         if mode == 'global':
-            db(opt.CHANNELS).update_one(channel, { '$set': { 'global_cooldown': cooldown } } )
+            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'global_cooldown': cooldown } } )
         elif mode == 'user':
-            db(opt.CHANNELS).update_one(channel, { '$set': { 'user_cooldown': cooldown } } )
+            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'user_cooldown': cooldown } } )
         else:
-            queuemessage(messages.set_cooldown_error, 0, currentchannel)
+            queue_message(messages.set_cooldown_error, 0, current_channel)
 
-def runeval(channel, expression):
+def run_eval(channel, expression):
     try:
-        queuemessage(str(eval(expression)), 0, channel)
+        queue_message(str(eval(expression)), 0, channel)
     except Exception as e:
-        queuemessage(messages.error_message(e), 0, channel)
+        queue_message(messages.error_message(e), 0, channel)
 
-def runexec(channel, code):
+def run_exec(channel, code):
     try:
         exec(code)
     except Exception as e:
-        queuemessage(messages.error_message(e), 0, channel)
+        queue_message(messages.error_message(e), 0, channel)
 
-def resetcd(channel):
+def reset_cooldown(channel):
     for user in db.raw[opt.USERS].find():
         db(opt.USERS).update_one(user['_id'], { '$set': {
-            'entered': 0,
             'last_entry': 0,
             'next_entry': 0
         }})
-    queuemessage(messages.reset_cooldown, 1)
+    queue_message(messages.reset_cooldown, 1)
 
 def restart():
-    queuemessage(messages.restart_message, 1)
+    queue_message(messages.restart_message, 1)
     repo = git.Repo(search_parent_directories=True)
     repo.git.reset('--hard')
     repo.remotes.origin.pull()
@@ -279,10 +276,14 @@ def restart():
     sock.close()
     os._exit(1)
 
-def usertag(channel, target, tag):
-    taglist = ['admin', 'moderator']
-    id = checkuserid(target)
-    if id:
-        if tag.lower() in taglist:
-            db(opt.TAGS).update_one(checkusername(id), {'$set': {tag.lower(): 1} }, upsert=True)
-            queuemessage(messages.tag_message(checkusername(id), tag), 0, channel)
+def tag_user(channel, user, tag):
+    tag_list = ['admin', 'moderator']
+    user_id = get_user_id(user)
+    if user:
+        if tag.lower() in tag_list:
+            user = db(opt.TAGS).find_one_by_id(user_id)
+            if not user or not user.get(tag.lower()):
+                db(opt.TAGS).update_one(user_id, {'$set': {tag.lower(): 1} }, upsert=True)
+                queue_message(messages.tag_message(get_display_name(user_id), tag), 0, channel)
+            else:
+                queue_message(messages.already_tag_message(get_display_name(user_id), tag), 0, channel)

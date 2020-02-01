@@ -50,7 +50,6 @@ def get_display_name(id):
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
     try:
         return response['data'][0]['display_name']
-        print(response['data'][0]['display_name'])
     except:
         return
 
@@ -60,7 +59,6 @@ def get_login_name(id):
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
     try:
         return response['data'][0]['login']
-        print(response['data'][0]['login'])
     except:
         return
 

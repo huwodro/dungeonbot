@@ -131,7 +131,6 @@ raid_event_thread.start()
 while True:
     try:
         resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
-        print(resp)
     except:
         util.sock.close()
         util.connect()

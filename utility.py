@@ -139,20 +139,20 @@ def start():
         db(opt.GENERAL).update_one(0, { '$set': schemes.GENERAL }, upsert=True)
     git_info()
 
-def check_if_registered(user, channel, req=None):
-    user = db(opt.USERS).find_one_by_id(user)
-    same_user = req == user if req else True
+def check_if_registered(user_id, channel, req=None):
+    same_user = req == user_id if req else True
     if same_user:
+        user = db(opt.USERS).find_one_by_id(user_id)
         if user and user.get('user_level'):
             return True
         else:
-            send_message(messages.not_registered(get_display_name(user['_id'])), channel)
+            send_message(messages.not_registered(get_display_name(user_id)), channel)
     else:
         target = db(opt.USERS).find_one_by_id(req)
-        if target:
+        if target and target.get('user_level'):
             return True
         else:
-            send_message(messages.user_not_registered(get_display_name(user['_id'])), channel)
+            send_message(messages.user_not_registered(get_display_name(user_id)), channel)
     return False
 
 def suggest(user, channel, message):

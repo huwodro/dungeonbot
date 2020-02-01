@@ -22,10 +22,10 @@ def ping(channel):
 def commands(channel):
     util.send_message(messages.commands, channel)
 
-def enter_dungeon(user, channel):
-    user = db(opt.USERS).find_one_by_id(user)
-    display_name = util.get_display_name(user['_id'])
+def enter_dungeon(user_id, channel):
+    user = db(opt.USERS).find_one_by_id(user_id)
     if user and user.get('user_level'):
+        display_name = util.get_display_name(user['_id'])
         enter_time = time.time()
         if int(user['next_entry'] - enter_time) <= 0:
             dungeon = db(opt.GENERAL).find_one_by_id(0)
@@ -117,7 +117,7 @@ def enter_dungeon(user, channel):
         else:
             util.send_message(messages.dungeon_already_entered(display_name, str(datetime.timedelta(seconds=(int(user['next_entry']) - enter_time))).split('.')[0]), channel)
     else:
-        util.send_message(messages.not_registered(display_name), channel)
+        util.send_message(messages.not_registered(util.get_display_name(user_id)), channel)
 
 def level_up(user, message, channel):
     util.queue_message(messages.user_level_up(user, message), 0, channel)

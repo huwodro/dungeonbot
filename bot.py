@@ -102,11 +102,12 @@ def raid_event():
                                     'user_level': 1,
                                     'current_experience': -(((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100)
                                 }})
-                            level_up_users.append(util.get_display_name(user))
-                    if level_up_users:
+                            level_up_users.append(user)
+                    level_up_names = util.get_display_name(0, level_up_users)
+                    if level_up_names:
                         i = 1
-                        for user in level_up_users[::5]:
-                            util.queue_message(messages.users_level_up(level_up_users[level_up_users.index(user):5*i]), 0, channel[0])
+                        for user in level_up_names[::5]:
+                            util.queue_message(messages.users_level_up(level_up_names[level_up_names.index(user):5*i]), 0, channel[0])
                             i += 1
                 db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experience_gain * len(raid_users),
@@ -151,7 +152,6 @@ while True:
             channel = re.search('( PRIVMSG #(.+?) )', resp)
             if channel:
                 channel = channel.group(2)
-                channel_id = util.get_user_id(channel)
             else:
                 continue
             message = re.search('.*#[^:]*:(.*)', resp)
@@ -163,7 +163,8 @@ while True:
             if message.startswith(bot_prefix):
                 params = message[1:].casefold().split(' ')
 
-                if db(opt.CHANNELS).find_one_by_id(channel_id)['online'] == 0:
+                if db(opt.CHANNELS).find_one_by_id(util.get_user_id(channel))['online'] == 0:
+                    channel_id = util.get_user_id(channel)
                     try:
                         user_cmdusetime = db(opt.USERS).find_one_by_id(user)['cmdusetime']
                     except:
@@ -317,7 +318,7 @@ while True:
                                     util.part_channel(params[1])
                             except IndexError:
                                 util.part_channel(util.get_login_name(user))
-                        elif admin.get('admin') == 1:
+                        if admin.get('admin') == 1:
                             try:
                                 util.part_channel(params[1])
                             except IndexError:

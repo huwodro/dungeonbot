@@ -30,8 +30,12 @@ def connect(manual = False):
         sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
         sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
         sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
+        channel_list = []
         for channel in db.raw[opt.CHANNELS].find():
-            sock.send(('JOIN #' + get_login_name(channel['_id']) + '\r\n').encode('utf-8'))
+            channel_list.append(channel['_id'])
+        name_list = get_login_name(0, channel_list)
+        for name in name_list:
+            sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
         t = time.localtime()
         current_time = time.strftime("%H:%M:%S", t)
         sys.stdout.write(current_time + ': SOCKET CONNECTED\n')
@@ -44,23 +48,47 @@ def connect(manual = False):
         else:
             os._exit(1) # Shuts down script if called from initialization
 
-def get_display_name(id):
+def get_display_name(id, list = None):
     headers = { 'Authorization': auth.bearer }
-    params = (('id', id),)
+    if list:
+        params = (('id', list),)
+    else:
+        params = (('id', id),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    try:
-        return response['data'][0]['display_name']
-    except:
-        return
+    if list:
+        try:
+            name_list = []
+            for user in response['data']:
+                name_list.append(user['display_name'])
+            return name_list
+        except:
+            return
+    else:
+        try:
+            return response['data'][0]['display_name']
+        except:
+            return
 
-def get_login_name(id):
+def get_login_name(id, list = None):
     headers = { 'Authorization': auth.bearer }
-    params = (('id', id),)
+    if list:
+        params = (('id', list),)
+    else:
+        params = (('id', id),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    try:
-        return response['data'][0]['login']
-    except:
-        return
+    if list:
+        try:
+            name_list = []
+            for user in response['data']:
+                name_list.append(user['login'])
+            return name_list
+        except:
+            return
+    else:
+        try:
+            return response['data'][0]['login']
+        except:
+            return
 
 def get_user_id(user):
     headers = { 'Authorization': auth.bearer }
@@ -105,11 +133,15 @@ def queue_message(message, mode, channel = None):
         sock.send((msg + '\r\n').encode('utf-8'))
         db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 0 } } )
     else:
+        channel_list = []
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                msg = 'PRIVMSG #' + get_login_name(channel['_id']) + ' :' + message + get_cooldown_bypass_symbol()
-                sock.send((msg + '\r\n').encode('utf-8'))
-                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 0 } } )
+                channel_list.append(channel['_id'])
+        name_list = get_login_name(0, channel_list)
+        for name in name_list:
+            msg = 'PRIVMSG #' + name + ' :' + message + get_cooldown_bypass_symbol()
+            sock.send((msg + '\r\n').encode('utf-8'))
+            db(opt.CHANNELS).update_one(channel_list[name_list.index(name)], { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
 def whisper(user, message, channel):
@@ -120,9 +152,13 @@ def git_info():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
+    channel_list = []
     for channel in db.raw[opt.CHANNELS].find():
         if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-            send_message(messages.startup_message(branch, sha), get_login_name(channel['_id']))
+            channel_list.append(channel['_id'])
+    name_list = get_login_name(0, channel_list)
+    for name in name_list:
+        send_message(messages.startup_message(branch, sha), name)
 
 def start():
     default_admin_id = get_user_id(auth.default_admin)

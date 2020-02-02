@@ -250,7 +250,7 @@ while True:
                                 if user and user.get('user_level'):
                                     raid_users.append((channel, user['_id']))
                                 else:
-                                    register_thread = threading.Thread(target = util.queuemessage, args=(messages.you_not_registered(user), 0, channel))
+                                    register_thread = threading.Thread(target = util.queue_message, args=(messages.you_not_registered(user), 0, channel))
                                     register_thread.start()
 
                 if params[0] == 'suggest':

@@ -51,7 +51,6 @@ def enter_dungeon(user_id, channel):
 
             dungeon_success = random.randint(1, 101)
             db(opt.USERS).update_one(user['_id'], {'$set': {
-                'entered': 1,
                 'last_entry': enter_time,
                 'next_entry': enter_time + dungeon_timeout
             }})

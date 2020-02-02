@@ -26,7 +26,7 @@ util.start()
 
 def live_check():
     while True:
-        online_channels = []
+        online_channels = {}
         headers = { 'Authorization': auth.bearer }
         params = []
         for channel in db.raw[opt.CHANNELS].find():
@@ -39,10 +39,13 @@ def live_check():
             sys.stderr.flush()
         else:
             for online in response['data']:
-                online_channels.append(online['user_id'])
+                online_channels[online['user_id']] = online['user_name'].lower()
             for channel in db.raw[opt.CHANNELS].find():
                 if channel['_id'] in online_channels:
-                    db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'online': 1 } }, upsert=True)
+                    db(opt.CHANNELS).update_one(channel['_id'], {'$set': {
+                        'name': online_channels[channel['_id']],
+                        'online': 1
+                    }}, upsert=True)
                 else:
                     db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'online': 0 } }, upsert=True)
 
@@ -163,56 +166,55 @@ while True:
             if message.startswith(bot_prefix):
                 params = message[1:].casefold().split(' ')
 
-                if db(opt.CHANNELS).find_one_by_id(util.get_user_id(channel))['online'] == 0:
-                    channel_id = util.get_user_id(channel)
+                if db(opt.CHANNELS).find_one({'name': channel})['online'] == 0:
                     try:
                         user_cmdusetime = db(opt.USERS).find_one_by_id(user)['cmdusetime']
                     except:
                         user_cmdusetime = 0
-                    user_cooldown = db(opt.CHANNELS).find_one_by_id(channel_id)['user_cooldown']
-                    global_cmdusetime = db(opt.CHANNELS).find_one_by_id(channel_id)['cmdusetime']
-                    global_cooldown = db(opt.CHANNELS).find_one_by_id(channel_id)['global_cooldown']
-                    message_queued = db(opt.CHANNELS).find_one_by_id(channel_id)['message_queued']
+                    user_cooldown = db(opt.CHANNELS).find_one({'name': channel})['user_cooldown']
+                    global_cmdusetime = db(opt.CHANNELS).find_one({'name': channel})['cmdusetime']
+                    global_cooldown = db(opt.CHANNELS).find_one({'name': channel})['global_cooldown']
+                    message_queued = db(opt.CHANNELS).find_one({'name': channel})['message_queued']
                     if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown and message_queued == 0:
 
                         if params[0] == 'commands' or params[0] == 'help' or params[0] == 'bot':
                             cmd.commands(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'enterdungeon' or params[0] == 'ed':
                             cmd.enter_dungeon(user, channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
                             cmd.dungeon_level(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonmaster' or params[0] == 'dm':
                             cmd.dungeon_master(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonstats':
                             cmd.dungeon_stats(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'raidstats':
                             cmd.raid_stats(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'uptime':
                             cmd.bot_uptime(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'ping':
                             cmd.ping(channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'xp' or params[0] == 'exp':
@@ -220,7 +222,7 @@ while True:
                                 cmd.user_experience(user, channel, params[1])
                             except IndexError:
                                 cmd.user_experience(user, channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'lvl' or params[0] == 'level':
@@ -228,7 +230,7 @@ while True:
                                 cmd.user_level(user, channel, params[1])
                             except IndexError:
                                 cmd.user_level(user, channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                         if params[0] == 'winrate' or params[0] == 'wr':
@@ -236,22 +238,24 @@ while True:
                                 cmd.winrate(user, channel, params[1])
                             except IndexError:
                                 cmd.winrate(user, channel)
-                            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                     if params[0] == 'register':
-                        cmd.register(user, channel, channel_id)
+                        cmd.register(user, channel)
 
                     if params[0] == 'join':
                         dungeon = db(opt.GENERAL).find_one_by_id(0)
                         if dungeon['raid_start'] == 1:
                             if not [usr for usr in raid_users if user in usr]:
-                                user = db(opt.USERS).find_one_by_id(user)
-                                if user and user.get('user_level'):
-                                    raid_users.append((channel, user['_id']))
+                                raid_user = db(opt.USERS).find_one_by_id(user)
+                                if raid_user and raid_user.get('user_level'):
+                                    raid_users.append((channel, raid_user['_id']))
                                 else:
-                                    register_thread = threading.Thread(target = util.queue_message, args=(messages.you_not_registered(user), 0, channel))
-                                    register_thread.start()
+                                    if time.time() > user_cmdusetime + global_cooldown:
+                                        register_thread = threading.Thread(target = util.queue_message, args=(messages.not_registered(util.get_display_name(user)), 0, channel))
+                                        register_thread.start()
+                                        db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
                 if params[0] == 'suggest':
                     util.suggest(util.get_display_name(user), channel, message[len(params[0])+2:])

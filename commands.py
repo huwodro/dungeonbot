@@ -206,7 +206,7 @@ def bot_uptime(channel):
     uptime = time.time()
     util.send_message(messages.dungeon_uptime(str(datetime.timedelta(seconds=(int(uptime - bot_start))))), channel)
 
-def register(user, channel, channel_id):
+def register(user, channel):
     registered = db(opt.USERS).find_one_by_id(user)
     if not registered or not registered.get('user_level'):
         db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
@@ -218,12 +218,12 @@ def register(user, channel, channel_id):
             user_cmdusetime = db(opt.USERS).find_one_by_id(user)['cmdusetime']
         except:
             user_cmdusetime = 0
-        user_cooldown = db(opt.CHANNELS).find_one_by_id(channel_id)['user_cooldown']
-        global_cmdusetime = db(opt.CHANNELS).find_one_by_id(channel_id)['cmdusetime']
-        global_cooldown = db(opt.CHANNELS).find_one_by_id(channel_id)['global_cooldown']
-        message_queued = db(opt.CHANNELS).find_one_by_id(channel_id)['message_queued']
+        user_cooldown = db(opt.CHANNELS).find_one({'name': channel})['user_cooldown']
+        global_cmdusetime = db(opt.CHANNELS).find_one({'name': channel})['cmdusetime']
+        global_cooldown = db(opt.CHANNELS).find_one({'name': channel})['global_cooldown']
+        message_queued = db(opt.CHANNELS).find_one({'name': channel})['message_queued']
         if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown and message_queued == 0:
-            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
             db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
             util.send_message(messages.user_already_registered(util.get_display_name(user)), channel)
 

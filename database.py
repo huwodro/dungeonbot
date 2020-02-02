@@ -31,6 +31,9 @@ class MongoDatabase:
     def update_one(self, f, update, **options):
         return db[self.collection].update_one({ '_id': f }, update, **options)
 
+    def update_one_by_name(self, f, update, **options):
+        return db[self.collection].update_one({ 'name': f }, update, **options)
+
     # def update_many(self, f, update, **options):
         # return db[self.collection].update_many( f, update, **options )
 

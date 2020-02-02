@@ -30,12 +30,10 @@ def connect(manual = False):
         sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
         sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
         sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
-        channel_list = []
+        channels = ''
         for channel in db.raw[opt.CHANNELS].find():
-            channel_list.append(channel['_id'])
-        name_list = get_login_name(0, channel_list)
-        for name in name_list:
-            sock.send(('JOIN #' + name + '\r\n').encode('utf-8'))
+            channels += '#' + channel['name'] + ','
+        sock.send(('JOIN ' + channels + '\r\n').encode('utf-8'))
         t = time.localtime()
         current_time = time.strftime("%H:%M:%S", t)
         sys.stdout.write(current_time + ': SOCKET CONNECTED\n')
@@ -69,26 +67,14 @@ def get_display_name(id, list = None):
         except:
             return
 
-def get_login_name(id, list = None):
+def get_login_name(id):
     headers = { 'Authorization': auth.bearer }
-    if list:
-        params = (('id', list),)
-    else:
-        params = (('id', id),)
+    params = (('id', id),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    if list:
-        try:
-            name_list = []
-            for user in response['data']:
-                name_list.append(user['login'])
-            return name_list
-        except:
-            return
-    else:
-        try:
-            return response['data'][0]['login']
-        except:
-            return
+    try:
+        return response['data'][0]['login']
+    except:
+        return
 
 def get_user_id(user):
     headers = { 'Authorization': auth.bearer }
@@ -133,15 +119,12 @@ def queue_message(message, mode, channel = None):
         sock.send((msg + '\r\n').encode('utf-8'))
         db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 0 } } )
     else:
-        channel_list = []
+        msg = ''
         for channel in db.raw[opt.CHANNELS].find():
             if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                channel_list.append(channel['_id'])
-        name_list = get_login_name(0, channel_list)
-        for name in name_list:
-            msg = 'PRIVMSG #' + name + ' :' + message + get_cooldown_bypass_symbol()
-            sock.send((msg + '\r\n').encode('utf-8'))
-            db(opt.CHANNELS).update_one(channel_list[name_list.index(name)], { '$set': { 'message_queued': 0 } } )
+                msg += 'PRIVMSG #' + channel['name'] + ' :' + message + get_cooldown_bypass_symbol() + '\r\n'
+                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 0 } } )
+        sock.send((msg).encode('utf-8'))
     queue_message_lock.release()
 
 def whisper(user, message, channel):
@@ -152,13 +135,7 @@ def git_info():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
-    channel_list = []
-    for channel in db.raw[opt.CHANNELS].find():
-        if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-            channel_list.append(channel['_id'])
-    name_list = get_login_name(0, channel_list)
-    for name in name_list:
-        send_message(messages.startup_message(branch, sha), name)
+    queue_message(messages.startup_message(branch, sha), 1)
 
 def start():
     default_admin_id = get_user_id(auth.default_admin)
@@ -169,6 +146,7 @@ def start():
     default_channel = db(opt.CHANNELS).find_one_by_id(default_channel_id)
     if default_channel == None:
         db(opt.CHANNELS).update_one(default_channel_id, { '$set': schemes.CHANNELS }, upsert=True)
+        db(opt.CHANNELS).update_one(default_channel_id, { '$set': { 'name': auth.default_channel } }, upsert=True)
     connect(True) # True for initialization
     default_dungeon = db(opt.GENERAL).find_one_by_id(0)
     if default_dungeon == None:
@@ -241,6 +219,7 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
         user = get_user_id(channel)
         if user:
             db(opt.CHANNELS).update_one(user, {'$set': {
+                'name': channel,
                 'online': 1,
                 'cmdusetime': time.time(),
                 'global_cooldown': global_cooldown,
@@ -257,18 +236,18 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
         queue_message(messages.no_channel_error(channel), 0, current_channel)
 
 def part_channel(channel):
-    user = db(opt.CHANNELS).find_one_by_id(get_user_id(channel))
+    user = db(opt.CHANNELS).find_one({'name': channel})
     if user:
         part_channel_thread = threading.Thread(target = queue_message, args=(messages.leaving_channel(get_display_name(user['_id'])), 0, channel))
         part_channel_thread.start()
         db(opt.CHANNELS).delete_one(user['_id'])
         db(opt.TAGS).update_one(user['_id'], {'$unset': { 'moderator': '' } }, upsert=True)
-        sock.send(('PART #' + get_login_name(user['_id']) + '\r\n').encode('utf-8'))
+        sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
 
 def list_channels(channel):
     joined_channels = []
     for joined_channel in db.raw[opt.CHANNELS].find():
-        joined_channels.append(get_display_name(joined_channel['_id']))
+        joined_channels.append(joined_channel['name'])
     queue_message(messages.list_channels(joined_channels), 0, channel)
 
 def set_cooldown(channel, mode, cooldown, current_channel):

@@ -101,7 +101,7 @@ def enter_dungeon(user_id, channel):
                         'user_level': 1,
                         'current_experience': -(((user['user_level']+1)**2)*100)
                     }})
-                    level_up_thread = threading.Thread(target = level_up, args=(display_name, str(user['user_level'] + 1), channel))
+                    level_up_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.user_level_up(display_name, str(user['user_level'] + 1)), channel))
                     level_up_thread.start()
             else:
                 db(opt.USERS).update_one(user['_id'], { '$inc': { 'dungeon_losses': 1 } })
@@ -117,9 +117,6 @@ def enter_dungeon(user_id, channel):
             util.send_message(messages.dungeon_already_entered(display_name, str(datetime.timedelta(seconds=(int(user['next_entry']) - enter_time))).split('.')[0]), channel)
     else:
         util.send_message(messages.not_registered(util.get_display_name(user_id)), channel)
-
-def level_up(user, message, channel):
-    util.queue_message(messages.user_level_up(user, message), 0, channel)
 
 def dungeon_level(channel):
     dungeon = db(opt.GENERAL).find_one_by_id(0)
@@ -211,7 +208,7 @@ def register(user, channel):
         db(opt.GENERAL).update_one(0, { '$inc': { 'dungeon_level': 1 } })
         db(opt.USERS).update_one(user, { '$set': schemes.USER }, upsert=True)
         dungeon = db(opt.GENERAL).find_one_by_id(0)
-        util.queue_message(messages.user_register(util.get_display_name(user), str(dungeon['dungeon_level'])), 0, channel)
+        util.queue_message_to_one(messages.user_register(util.get_display_name(user), str(dungeon['dungeon_level'])), channel)
     else:
         try:
             user_cmdusetime = db(opt.USERS).find_one_by_id(user)['cmdusetime']

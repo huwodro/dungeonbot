@@ -104,27 +104,23 @@ def send_message(message, channel):
 
 queue_message_lock = threading.Lock()
 
-def queue_message(message, mode, channel = None):
+def queue_message_to_one(message, channel):
     queue_message_lock.acquire()
-    if channel == None:
-        for channel in db.raw[opt.CHANNELS].find():
-            if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 1 } } )
-    else:
-        channel_id = get_user_id(channel)
-        db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 1 } } )
+    db(opt.CHANNELS).update_one_by_name({'name': channel}, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
-    if mode == 0:
-        msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
-        sock.send((msg + '\r\n').encode('utf-8'))
-        db(opt.CHANNELS).update_one(channel_id, { '$set': { 'message_queued': 0 } } )
-    else:
-        msg = ''
-        for channel in db.raw[opt.CHANNELS].find():
-            if db(opt.CHANNELS).find_one_by_id(channel['_id'])['online'] == 0:
-                msg += 'PRIVMSG #' + channel['name'] + ' :' + message + get_cooldown_bypass_symbol() + '\r\n'
-                db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'message_queued': 0 } } )
-        sock.send((msg).encode('utf-8'))
+    msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
+    sock.send((msg + '\r\n').encode('utf-8'))
+    db(opt.CHANNELS).update_one_by_name({'name': channel}, { '$set': { 'message_queued': 0 } } )
+    queue_message_lock.release()
+
+def queue_message_to_all(message):
+    queue_message_lock.acquire()
+    db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 1 } } )
+    time.sleep(1.25)
+    channel_list = db(opt.CHANNELS).find({'online': 0}).distinct('name')
+    msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channel_list)
+    sock.send((msg).encode('utf-8'))
+    db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
 def whisper(user, message, channel):
@@ -135,7 +131,7 @@ def git_info():
     repo = git.Repo(search_parent_directories=True)
     branch = repo.active_branch.name
     sha = repo.head.object.hexsha
-    queue_message(messages.startup_message(branch, sha), 1)
+    queue_message_to_all(messages.startup_message(branch, sha))
 
 def start():
     default_admin_id = get_user_id(auth.default_admin)
@@ -183,7 +179,7 @@ def suggest(user, channel, message):
                 'user': user,
                 'suggestion': message
             }}, upsert=True)
-            suggestion_thread = threading.Thread(target = queue_message, args=(messages.suggestion_message(user, str(id)), 0, channel))
+            suggestion_thread = threading.Thread(target = queue_message_to_one, args=(messages.suggestion_message(user, str(id)), channel))
             suggestion_thread.start()
 
 ### Admin Commands ###
@@ -233,12 +229,12 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
             sha = repo.head.object.hexsha
             send_message(messages.startup_message(branch, sha), channel)
     except AttributeError:
-        queue_message(messages.no_channel_error(channel), 0, current_channel)
+        queue_message_to_one(messages.no_channel_error(channel), current_channel)
 
 def part_channel(channel):
     user = db(opt.CHANNELS).find_one({'name': channel})
     if user:
-        part_channel_thread = threading.Thread(target = queue_message, args=(messages.leaving_channel(get_display_name(user['_id'])), 0, channel))
+        part_channel_thread = threading.Thread(target = queue_message_to_one, args=(messages.leaving_channel(get_display_name(user['_id'])), channel))
         part_channel_thread.start()
         db(opt.CHANNELS).delete_one(user['_id'])
         db(opt.TAGS).update_one(user['_id'], {'$unset': { 'moderator': '' } }, upsert=True)
@@ -248,7 +244,7 @@ def list_channels(channel):
     joined_channels = []
     for joined_channel in db.raw[opt.CHANNELS].find():
         joined_channels.append(joined_channel['name'])
-    queue_message(messages.list_channels(joined_channels), 0, channel)
+    queue_message_to_one(messages.list_channels(joined_channels), channel)
 
 def set_cooldown(channel, mode, cooldown, current_channel):
     channel_id = get_user_id(channel)
@@ -258,19 +254,19 @@ def set_cooldown(channel, mode, cooldown, current_channel):
         elif mode == 'user':
             db(opt.CHANNELS).update_one(channel_id, { '$set': { 'user_cooldown': cooldown } } )
         else:
-            queue_message(messages.set_cooldown_error, 0, current_channel)
+            queue_message_to_one(messages.set_cooldown_error, current_channel)
 
 def run_eval(channel, expression):
     try:
-        queue_message(str(eval(expression)), 0, channel)
+        queue_message_to_one(str(eval(expression)), channel)
     except Exception as e:
-        queue_message(messages.error_message(e), 0, channel)
+        queue_message_to_one(messages.error_message(e), channel)
 
 def run_exec(channel, code):
     try:
         exec(code)
     except Exception as e:
-        queue_message(messages.error_message(e), 0, channel)
+        queue_message_to_one(messages.error_message(e), channel)
 
 def reset_cooldown(channel):
     for user in db.raw[opt.USERS].find():
@@ -278,10 +274,10 @@ def reset_cooldown(channel):
             'last_entry': 0,
             'next_entry': 0
         }})
-    queue_message(messages.reset_cooldown, 1)
+    queue_message_to_all(messages.reset_cooldown)
 
 def restart():
-    queue_message(messages.restart_message, 1)
+    queue_message_to_all(messages.restart_message)
     repo = git.Repo(search_parent_directories=True)
     repo.git.reset('--hard')
     repo.remotes.origin.pull()
@@ -297,6 +293,6 @@ def tag_user(channel, user, tag):
             user = db(opt.TAGS).find_one_by_id(user_id)
             if not user or not user.get(tag.lower()):
                 db(opt.TAGS).update_one(user_id, {'$set': {tag.lower(): 1} }, upsert=True)
-                queue_message(messages.tag_message(get_display_name(user_id), tag), 0, channel)
+                queue_message_to_one(messages.tag_message(get_display_name(user_id), tag), channel)
             else:
-                queue_message(messages.already_tag_message(get_display_name(user_id), tag), 0, channel)
+                queue_message_to_one(messages.already_tag_message(get_display_name(user_id), tag), channel)

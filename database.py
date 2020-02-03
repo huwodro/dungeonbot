@@ -22,8 +22,15 @@ class MongoDatabase:
 
     raw = db
 
+    def find(self, f=None, *args, **options):
+        return db[self.collection].find(f, *args, **options)
+
     def find_one(self, f=None, *args, **options):
         return db[self.collection].find_one(f, *args, **options)
+
+    def find_one_by_id(self, i, **options):
+        options.update(limit=1)
+        return self.find_one({ '_id': i }, **options)
 
     def delete_one(self, f, *args, **options):
         return db[self.collection].delete_one({ '_id': f }, *args, **options)
@@ -31,18 +38,14 @@ class MongoDatabase:
     def update_one(self, f, update, **options):
         return db[self.collection].update_one({ '_id': f }, update, **options)
 
+    def update_many(self, f, update, **options):
+        return db[self.collection].update_many(f, update, **options)
+
     def update_one_by_name(self, f, update, **options):
         return db[self.collection].update_one({ 'name': f }, update, **options)
 
-    # def update_many(self, f, update, **options):
-        # return db[self.collection].update_many( f, update, **options )
-
     def count_documents(self, f, **options):
         return db[self.collection].count_documents(f, **options)
-
-    def find_one_by_id(self, i, **options):
-        options.update(limit=1)
-        return self.find_one({ '_id': i }, **options)
 
     def get_random_documents(self, size):
         return db[self.collection].aggregate([{ '$sample': { 'size': size }}])

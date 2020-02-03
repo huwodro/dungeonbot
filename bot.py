@@ -65,16 +65,16 @@ def raid_event():
             raid_level = random.randint(1, dungeon['dungeon_level']+1)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 1 } })
             time.sleep(0.5)
-            util.queue_message(messages.raid_event_appear(str(raid_level), str(time_to_join)), 1)
+            util.queue_message_to_all(messages.raid_event_appear(str(raid_level), str(time_to_join)))
             time.sleep(message_interval)
             for i in range(interval_range, 0, -(message_interval)):
-                util.queue_message(messages.raid_event_countdown(str(i)), 1)
+                util.queue_message_to_all(messages.raid_event_countdown(str(i)))
                 time.sleep(message_interval)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 0 } })
             rand = random.randint(3600, 7200)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } })
             if len(raid_users) == 0:
-                util.queue_message(messages.raid_event_no_users, 1)
+                util.queue_message_to_all(messages.raid_event_no_users)
                 continue
             elif len(raid_users) == 1:
                 user_word = ' user'
@@ -82,12 +82,12 @@ def raid_event():
                 user_word = ' users'
             for user in raid_users:
                 success_rate += math.ceil(db(opt.USERS).find_one_by_id(user[1])['user_level'] / raid_level * 125)
-            util.queue_message(messages.raid_event_start(str(len(raid_users)), user_word, str(success_rate/10)), 1)
+            util.queue_message_to_all(messages.raid_event_start(str(len(raid_users)), user_word, str(success_rate/10)))
             time.sleep(3)
             raid_success = random.randint(1, 1001)
             if raid_success <= success_rate:
                 experience_gain = int(raid_level**1.2 * 275 / len(raid_users))
-                util.queue_message(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)), 1)
+                util.queue_message_to_all(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)))
                 for user, channel in raid_users:
                     users_by_channel[user].append(channel)
                 for channel in users_by_channel.items():
@@ -110,14 +110,14 @@ def raid_event():
                     if level_up_names:
                         i = 1
                         for user in level_up_names[::5]:
-                            util.queue_message(messages.users_level_up(level_up_names[level_up_names.index(user):5*i]), 0, channel[0])
+                            util.queue_message_to_one(messages.users_level_up(level_up_names[level_up_names.index(user):5*i]), 0, channel[0])
                             i += 1
                 db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experience_gain * len(raid_users),
                     'total_raid_wins': 1
                 }})
             else:
-                util.queue_message(messages.raid_event_failed(str(len(raid_users)), user_word, str(raid_level)), 1)
+                util.queue_message_to_all(messages.raid_event_failed(str(len(raid_users)), user_word, str(raid_level)))
                 for user in raid_users:
                     db(opt.USERS).update_one(user[0], {'$inc': {
                         'raid_losses': 1,
@@ -253,7 +253,7 @@ while True:
                                     raid_users.append((channel, raid_user['_id']))
                                 else:
                                     if time.time() > user_cmdusetime + global_cooldown:
-                                        register_thread = threading.Thread(target = util.queue_message, args=(messages.not_registered(util.get_display_name(user)), 0, channel))
+                                        register_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.not_registered(util.get_display_name(user)), channel))
                                         register_thread.start()
                                         db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
 
@@ -270,9 +270,9 @@ while True:
                             if params[1] in modes:
                                 util.dungeon_text(params[1], message[len(params[0])+len(params[1])+2:])
                             else:
-                                util.queue_message(messages.add_text_error, 0, channel)
+                                util.queue_message_to_one(messages.add_text_error, channel)
                         except IndexError:
-                            util.queue_message(messages.add_text_error, 0, channel)
+                            util.queue_message_to_one(messages.add_text_error, channel)
 
                 if params[0] == 'cs':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -309,9 +309,9 @@ while True:
                             elif len(params) == 2:
                                 util.join_channel(channel, params[1], 2.5, 0)
                             else:
-                                util.queue_message(messages.add_channel_error, 0, channel)
+                                util.queue_message_to_one(messages.add_channel_error, channel)
                         except ValueError as e:
-                            util.queue_message(messages.error_message(e), 0, channel)
+                            util.queue_message_to_one(messages.error_message(e), channel)
 
                 if params[0] == 'part':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -326,7 +326,7 @@ while True:
                             try:
                                 util.part_channel(params[1])
                             except IndexError:
-                                util.queue_message(messages.part_channel_error, 0, channel)
+                                util.queue_message_to_one(messages.part_channel_error, channel)
 
                 if params[0] == 'cd' or params[0] == 'cooldown':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -334,9 +334,9 @@ while True:
                         try:
                             util.set_cooldown(params[1], params[2], float(params[3]), channel)
                         except IndexError:
-                            util.queue_message(messages.set_cooldown_error, 0, channel)
+                            util.queue_message_to_one(messages.set_cooldown_error, channel)
                         except ValueError as e:
-                            util.queue_message(messages.error_message(e), 0, channel)
+                            util.queue_message_to_one(messages.error_message(e), channel)
 
                 if params[0] == 'channels':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -359,7 +359,7 @@ while True:
                         try:
                             util.tag_user(channel, params[1], params[2])
                         except IndexError as e:
-                            util.queue_message(messages.tag_error, 0, channel)
+                            util.queue_message_to_one(messages.tag_error, channel)
 
                 if params[0] == 'resetcd':
                     admin = db(opt.TAGS).find_one_by_id(user)

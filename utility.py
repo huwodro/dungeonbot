@@ -30,9 +30,8 @@ def connect(manual = False):
         sock.send(('PASS ' + auth.token + '\r\n').encode('utf-8'))
         sock.send(('NICK ' + auth.nickname + '\r\n').encode('utf-8'))
         sock.send(("CAP REQ :twitch.tv/tags\r\n").encode('utf-8'))
-        channels = ''
-        for channel in db.raw[opt.CHANNELS].find():
-            channels += '#' + channel['name'] + ','
+        channel_list = db(opt.CHANNELS).find({}).distinct('name')
+        channels = ','.join('#{0}'.format(c) for c in channel_list)
         sock.send(('JOIN ' + channels + '\r\n').encode('utf-8'))
         t = time.localtime()
         current_time = time.strftime("%H:%M:%S", t)
@@ -106,11 +105,20 @@ queue_message_lock = threading.Lock()
 
 def queue_message_to_one(message, channel):
     queue_message_lock.acquire()
-    db(opt.CHANNELS).update_one_by_name({'name': channel}, { '$set': { 'message_queued': 1 } } )
+    db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
-    db(opt.CHANNELS).update_one_by_name({'name': channel}, { '$set': { 'message_queued': 0 } } )
+    db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 0 } } )
+    queue_message_lock.release()
+
+def queue_message_to_some(message, channels):
+    queue_message_lock.acquire()
+    db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 1 } } )
+    time.sleep(1.25)
+    msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channels)
+    sock.send((msg).encode('utf-8'))
+    db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
 def queue_message_to_all(message):
@@ -123,8 +131,8 @@ def queue_message_to_all(message):
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
-def whisper(user, message, channel):
-    msg = 'PRIVMSG #' + channel + ' :.w ' + user + ' ' + message
+def whisper(message, user):
+    msg = 'PRIVMSG #' + user + ' :.w ' + user + ' ' + message
     sock.send((msg + '\r\n').encode('utf-8'))
 
 def git_info():
@@ -149,7 +157,7 @@ def start():
         db(opt.GENERAL).update_one(0, { '$set': schemes.GENERAL }, upsert=True)
     git_info()
 
-def check_if_registered(user_id, channel, req=None):
+def check_if_registered(user_id, channel, req = None):
     same_user = req == user_id if req else True
     if same_user:
         user = db(opt.USERS).find_one_by_id(user_id)
@@ -200,15 +208,15 @@ def dungeon_text(mode, message):
 def check_suggestion(user, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)['suggestion']
     suggestion_user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
-    whisper(get_display_name(user), messages.check_suggestion(suggestion, suggestion_user, str(id)), channel)
+    whisper(messages.check_suggestion(suggestion, suggestion_user, str(id)), get_display_name(user))
 
 def remove_suggestion(user, channel, id):
     suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)
     if suggestion:
         db(opt.SUGGESTIONS).delete_one(id)
-        whisper(get_display_name(user), messages.suggestion_removed(str(id)), channel)
+        whisper(messages.suggestion_removed(str(id)), get_display_name(user))
     else:
-        whisper(get_display_name(user), messages.remove_suggestion_error, channel)
+        whisper(messages.remove_suggestion_error, get_display_name(user))
 
 def join_channel(current_channel, channel, global_cooldown, user_cooldown):
     try:
@@ -217,7 +225,8 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
             db(opt.CHANNELS).update_one(user, {'$set': {
                 'name': channel,
                 'online': 1,
-                'cmdusetime': time.time(),
+                'cmd_use_time': time.time(),
+                'last_message_time': time.time(),
                 'global_cooldown': global_cooldown,
                 'user_cooldown': user_cooldown,
                 'message_queued': 0
@@ -256,24 +265,23 @@ def set_cooldown(channel, mode, cooldown, current_channel):
         else:
             queue_message_to_one(messages.set_cooldown_error, current_channel)
 
-def run_eval(channel, expression):
+def run_eval(expression, channel):
     try:
         queue_message_to_one(str(eval(expression)), channel)
     except Exception as e:
         queue_message_to_one(messages.error_message(e), channel)
 
-def run_exec(channel, code):
+def run_exec(code, channel):
     try:
         exec(code)
     except Exception as e:
         queue_message_to_one(messages.error_message(e), channel)
 
 def reset_cooldown(channel):
-    for user in db.raw[opt.USERS].find():
-        db(opt.USERS).update_one(user['_id'], { '$set': {
-            'last_entry': 0,
-            'next_entry': 0
-        }})
+    db(opt.USERS).update_one_many({}, { '$set': {
+        'last_entry': 0,
+        'next_entry': 0
+    }})
     queue_message_to_all(messages.reset_cooldown)
 
 def restart():
@@ -285,7 +293,7 @@ def restart():
     sock.close()
     os._exit(1)
 
-def tag_user(channel, user, tag):
+def tag_user(user, tag, channel):
     tag_list = ['admin', 'moderator']
     user_id = get_user_id(user)
     if user:

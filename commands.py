@@ -211,16 +211,16 @@ def register(user, channel):
         util.queue_message_to_one(messages.user_register(util.get_display_name(user), str(dungeon['dungeon_level'])), channel)
     else:
         try:
-            user_cmdusetime = db(opt.USERS).find_one_by_id(user)['cmdusetime']
+            user_cmd_use_time = db(opt.USERS).find_one_by_id(user)['cmd_use_time']
         except:
-            user_cmdusetime = 0
+            user_cmd_use_time = 0
         user_cooldown = db(opt.CHANNELS).find_one({'name': channel})['user_cooldown']
-        global_cmdusetime = db(opt.CHANNELS).find_one({'name': channel})['cmdusetime']
+        global_cmd_use_time = db(opt.CHANNELS).find_one({'name': channel})['cmd_use_time']
         global_cooldown = db(opt.CHANNELS).find_one({'name': channel})['global_cooldown']
         message_queued = db(opt.CHANNELS).find_one({'name': channel})['message_queued']
-        if time.time() > global_cmdusetime + global_cooldown and time.time() > user_cmdusetime + user_cooldown and message_queued == 0:
-            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
-            db(opt.USERS).update_one(user, { '$set': { 'cmdusetime': time.time() } }, upsert=True)
+        if time.time() > global_cmd_use_time + global_cooldown and time.time() > user_cmd_use_time + user_cooldown and message_queued == 0:
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+            db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
             util.send_message(messages.user_already_registered(util.get_display_name(user)), channel)
 
 def user_experience(user, channel, message=None):

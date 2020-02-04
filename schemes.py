@@ -29,7 +29,8 @@ USER = {
 
 CHANNELS = {
     'online': 1,
-    'cmdusetime': time.time(),
+    'cmd_use_time': time.time(),
+    'last_message_time': time.time(),
     'global_cooldown': 2.5,
     'user_cooldown': 0,
     'message_queued': 0

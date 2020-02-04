@@ -109,6 +109,7 @@ def queue_message_to_one(message, channel):
     time.sleep(1.25)
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
+    time.sleep(0.5)
     db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
@@ -118,6 +119,7 @@ def queue_message_to_some(message, channels):
     time.sleep(1.25)
     msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channels)
     sock.send((msg).encode('utf-8'))
+    time.sleep(0.5)
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
@@ -128,6 +130,7 @@ def queue_message_to_all(message):
     channel_list = db(opt.CHANNELS).find({'online': 0}).distinct('name')
     msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channel_list)
     sock.send((msg).encode('utf-8'))
+    time.sleep(0.5)
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 

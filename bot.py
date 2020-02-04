@@ -68,7 +68,7 @@ def raid_event():
             util.queue_message_to_all(messages.raid_event_appear(str(raid_level), str(time_to_join)))
             time.sleep(message_interval)
             for i in range(interval_range, 0, -(message_interval)):
-                channel_list = db(opt.CHANNELS).find({'last_message_time': {'$gt': time.time() - message_interval}}).distinct('name')
+                channel_list = db(opt.CHANNELS).find({'online': 0, 'last_message_time': {'$gt': time.time() - message_interval}}).distinct('name')
                 util.queue_message_to_some(messages.raid_event_countdown(str(i)), channel_list)
                 time.sleep(message_interval)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 0 } })

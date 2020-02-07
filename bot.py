@@ -135,7 +135,7 @@ raid_event_thread.start()
 
 while True:
     try:
-        resp = emoji.demojize(util.sock.recv(2048).decode('utf-8'))
+        resp = emoji.demojize(util.sock.recv(4096).decode('utf-8'))
     except:
         util.sock.close()
         util.connect()
@@ -153,11 +153,19 @@ while True:
                 user = user.group(1)
             else:
                 continue
+
+            display_name = re.search('display-name=(.+?);', resp)
+            if display_name:
+                display_name = display_name.group(1)
+            else:
+                continue
+
             channel = re.search('( PRIVMSG #(.+?) )', resp)
             if channel:
                 channel = channel.group(2)
             else:
                 continue
+
             message = re.search('.*?PRIVMSG[^:]*:(.*)', resp)
             if message:
                 message = message.group(1).strip()
@@ -186,66 +194,61 @@ while True:
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'enterdungeon' or params[0] == 'ed':
-                            cmd.enter_dungeon(user, channel)
+                            cmd.user_command.all['enterdungeon'](user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
-                            cmd.dungeon_level(channel)
+                            cmd.user_command.all['dungeonlvl'](channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonmaster' or params[0] == 'dm':
-                            cmd.dungeon_master(channel)
+                            cmd.user_command.all['dungeonmaster'](channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonstats':
-                            cmd.dungeon_stats(channel)
+                            cmd.user_command.all['dungeonstats'](channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'raidstats':
-                            cmd.raid_stats(channel)
-                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
-                            db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
-
-                        if params[0] == 'uptime':
-                            cmd.bot_uptime(channel)
+                            cmd.user_command.all['raidstats'](channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'ping':
-                            cmd.ping(channel)
+                            cmd.user_command.all['ping'](channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'xp' or params[0] == 'exp':
                             try:
-                                cmd.user_experience(user, channel, params[1])
+                                cmd.user_command.all['xp'](user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.user_experience(user, channel)
+                                cmd.user_command.all['xp'](user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'lvl' or params[0] == 'level':
                             try:
-                                cmd.user_level(user, channel, params[1])
+                                cmd.user_command.all['lvl'](user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.user_level(user, channel)
+                                cmd.user_command.all['lvl'](user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'winrate' or params[0] == 'wr':
                             try:
-                                cmd.winrate(user, channel, params[1])
+                                cmd.user_command.all['winrate'](user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.winrate(user, channel)
+                                cmd.user_command.all['winrate'](user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                     if params[0] == 'register':
-                        cmd.register(user, channel)
+                        cmd.user_command.all['register'](user, display_name, channel)
 
                     if params[0] == 'join':
                         dungeon = db(opt.GENERAL).find_one_by_id(0)

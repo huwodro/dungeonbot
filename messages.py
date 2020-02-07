@@ -1,8 +1,10 @@
 import emoji
 
-commands = emoji.emojize(':memo:', use_aliases=True) + 'Commands: +register | +enterdungeon | +dungeonlvl | +lvl | +xp | +winrate | +dungeonmaster | +dungeonstats | +raidstats | +uptime | +suggest'
+def commands(command_list):
+    return emoji.emojize(':memo:', use_aliases=True) + 'Commands: ' + ' | '.join('+{0}'.format(c) for c in command_list)
 
-pong = 'Dungeon Bot MrDestructoid For a list of commands, type +commands'
+def ping(uptime):
+    return emoji.emojize(' :stopwatch:', use_aliases=True) + ' Dungeon Bot Uptime: ' + uptime + ' | For a list of commands, type +commands'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
@@ -61,9 +63,6 @@ def raid_event_win(users, user_word, raid_level, experience_gain):
 
 def raid_event_failed(users, user_word, raid_level):
     return users + user_word + ' failed to beat the raid level [' + raid_level + '] - No experience rewarded!' + emoji.emojize(':skull:', use_aliases=True)
-
-def dungeon_uptime(uptime):
-    return 'Dungeon Uptime: ' + uptime + emoji.emojize(' :stopwatch:', use_aliases=True)
 
 def user_register(username, dungeon_level):
     return 'DING ' + emoji.emojize(':bell:', use_aliases=True) + ' Thank you for registering ' + username + ' | Dungeon leveled up! Level [' + dungeon_level + ']'

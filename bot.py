@@ -65,17 +65,21 @@ def raid_event():
             raid_level = random.randint(1, dungeon['dungeon_level']+1)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 1 } })
             time.sleep(0.5)
-            util.queue_message_to_all(messages.raid_event_appear(str(raid_level), str(time_to_join)))
+            channel_list = db(opt.CHANNELS).find({'online': 0, 'raid_events': 1}).distinct('name')
+            if channel_list:
+                util.queue_message_to_some(messages.raid_event_appear(str(raid_level), str(time_to_join)), channel_list)
             time.sleep(message_interval)
             for i in range(interval_range, 0, -(message_interval)):
-                channel_list = db(opt.CHANNELS).find({'online': 0, 'last_message_time': {'$gt': time.time() - message_interval}}).distinct('name')
-                util.queue_message_to_some(messages.raid_event_countdown(str(i)), channel_list)
+                channel_time_list = db(opt.CHANNELS).find({'online': 0, 'raid_events': 1, 'last_message_time': {'$gt': time.time() - message_interval}}).distinct('name')
+                if channel_time_list:
+                    util.queue_message_to_some(messages.raid_event_countdown(str(i)), channel_time_list)
                 time.sleep(message_interval)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 0 } })
             rand = random.randint(3600, 7200)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } })
             if len(raid_users) == 0:
-                util.queue_message_to_all(messages.raid_event_no_users)
+                if channel_list:
+                    util.queue_message_to_some(messages.raid_event_no_users, channel_list)
                 continue
             elif len(raid_users) == 1:
                 user_word = ' user'
@@ -83,12 +87,14 @@ def raid_event():
                 user_word = ' users'
             for user in raid_users:
                 success_rate += math.ceil(db(opt.USERS).find_one_by_id(user[1])['user_level'] / raid_level * 125)
-            util.queue_message_to_all(messages.raid_event_start(str(len(raid_users)), user_word, str(success_rate/10)))
+            if channel_list:
+                util.queue_message_to_some(messages.raid_event_start(str(len(raid_users)), user_word, str(success_rate/10)), channel_list)
             time.sleep(3)
             raid_success = random.randint(1, 1001)
             if raid_success <= success_rate:
                 experience_gain = int(raid_level**1.2 * 275 / len(raid_users))
-                util.queue_message_to_all(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)))
+                if channel_list:
+                    util.queue_message_to_some(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)), channel_list)
                 for user, channel in raid_users:
                     users_by_channel[user].append(channel)
                 for channel in users_by_channel.items():
@@ -118,7 +124,8 @@ def raid_event():
                     'total_raid_wins': 1
                 }})
             else:
-                util.queue_message_to_all(messages.raid_event_failed(str(len(raid_users)), user_word, str(raid_level)))
+                if channel_list:
+                    util.queue_message_to_some(messages.raid_event_failed(str(len(raid_users)), user_word, str(raid_level)), channel_list)
                 for user in raid_users:
                     db(opt.USERS).update_one(user[0], {'$inc': {
                         'raid_losses': 1,
@@ -252,19 +259,20 @@ while True:
 
                     if params[0] == 'join':
                         dungeon = db(opt.GENERAL).find_one_by_id(0)
-                        if dungeon['raid_start'] == 1:
+                        channel_raids = db(opt.CHANNELS).find_one({'name': channel})
+                        if dungeon['raid_start'] == 1 and channel_raids['raid_events'] == 1:
                             if not [usr for usr in raid_users if user in usr]:
                                 raid_user = db(opt.USERS).find_one_by_id(user)
                                 if raid_user and raid_user.get('user_level'):
                                     raid_users.append((channel, raid_user['_id']))
                                 else:
                                     if time.time() > user_cmd_use_time + global_cooldown:
-                                        register_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.not_registered(util.get_display_name(user)), channel))
+                                        register_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.not_registered(display_name), channel))
                                         register_thread.start()
                                         db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                 if params[0] == 'suggest':
-                    util.suggest(util.get_display_name(user), channel, message[len(params[0])+2:])
+                    util.suggest(display_name, channel, message[len(params[0])+2:])
 
                 ### Admin Commands ###
 
@@ -290,9 +298,9 @@ while True:
                             for suggestion in db.raw[opt.SUGGESTIONS].find():
                                 suggestions.append(suggestion['_id'])
                             if suggestions:
-                                util.whisper(messages.list_suggestions(suggestions), util.get_display_name(user))
+                                util.whisper(messages.list_suggestions(suggestions), display_name)
                             else:
-                                util.whisper(messages.no_suggestions, util.get_display_name(user))
+                                util.whisper(messages.no_suggestions, display_name)
 
                 if params[0] == 'rs':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -300,9 +308,9 @@ while True:
                         try:
                             util.remove_suggestion(user, channel, int(params[1]))
                         except IndexError:
-                            util.whisper(messages.remove_suggestion_usage_error, util.get_display_name(user))
+                            util.whisper(messages.remove_suggestion_usage_error, display_name)
                         except ValueError as e:
-                            util.whisper(messages.error_message(e), util.get_display_name(user))
+                            util.whisper(messages.error_message(e), display_name)
 
                 if params[0] == 'add':
                     admin = db(opt.TAGS).find_one_by_id(user)
@@ -322,17 +330,36 @@ while True:
                 if params[0] == 'part':
                     admin = db(opt.TAGS).find_one_by_id(user)
                     if admin:
-                        if admin.get('moderator') == 1:
-                            try:
-                                if params[1] == util.get_login_name(user):
-                                    util.part_channel(params[1])
-                            except IndexError:
-                                util.part_channel(util.get_login_name(user))
                         if admin.get('admin') == 1:
                             try:
                                 util.part_channel(params[1])
                             except IndexError:
                                 util.queue_message_to_one(messages.part_channel_error, channel)
+
+                        elif admin.get('moderator') == 1:
+                            try:
+                                if params[1] == display_name.casefold():
+                                    util.part_channel(params[1])
+                            except IndexError:
+                                util.part_channel(display_name.casefold())
+
+                if params[0] == 'events':
+                    admin = db(opt.TAGS).find_one_by_id(user)
+                    if admin:
+                        if admin.get('admin') == 1:
+                            try:
+                                util.set_events(params[1], params[2], channel)
+                            except IndexError:
+                                util.queue_message_to_one(messages.set_events_error, channel)
+
+                        elif admin.get('moderator') == 1:
+                            try:
+                                if params[1] == display_name.casefold():
+                                    util.set_events(params[1], params[2], channel)
+                                elif params[1] == 'on' or params[1] == 'off':
+                                    util.set_events(display_name.casefold(), params[1], channel)
+                            except IndexError:
+                                util.queue_message_to_one(messages.set_events_error, channel)
 
                 if params[0] == 'cd' or params[0] == 'cooldown':
                     admin = db(opt.TAGS).find_one_by_id(user)

@@ -66,15 +66,6 @@ def get_display_name(id, list = None):
         except:
             return
 
-def get_login_name(id):
-    headers = { 'Authorization': auth.bearer }
-    params = (('id', id),)
-    response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
-    try:
-        return response['data'][0]['login']
-    except:
-        return
-
 def get_user_id(user):
     headers = { 'Authorization': auth.bearer }
     params = (('login', user),)
@@ -258,15 +249,26 @@ def list_channels(channel):
         joined_channels.append(joined_channel['name'])
     queue_message_to_one(messages.list_channels(joined_channels), channel)
 
+def set_events(channel, mode, current_channel):
+    option_dict = {'off': 0, 'on': 1}
+    try:
+        db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'raid_events': option_dict[mode] } } )
+    except Exception as e:
+        queue_message_to_one(messages.error_message(e), current_channel)
+
 def set_cooldown(channel, mode, cooldown, current_channel):
-    channel_id = get_user_id(channel)
-    if db(opt.CHANNELS).find_one_by_id(channel_id):
-        if mode == 'global':
-            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'global_cooldown': cooldown } } )
-        elif mode == 'user':
-            db(opt.CHANNELS).update_one(channel_id, { '$set': { 'user_cooldown': cooldown } } )
-        else:
-            queue_message_to_one(messages.set_cooldown_error, current_channel)
+    if mode == 'global':
+        try:
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'global_cooldown': cooldown } } )
+        except Exception as e:
+            queue_message_to_one(messages.error_message(e), current_channel)
+    elif mode == 'user':
+        try:
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'user_cooldown': cooldown } } )
+        except Exception as e:
+            queue_message_to_one(messages.error_message(e), current_channel)
+    else:
+        queue_message_to_one(messages.set_cooldown_error, current_channel)
 
 def run_eval(expression, channel):
     try:
@@ -281,7 +283,7 @@ def run_exec(code, channel):
         queue_message_to_one(messages.error_message(e), channel)
 
 def reset_cooldown(channel):
-    db(opt.USERS).update_one_many({}, { '$set': {
+    db(opt.USERS).update_many({}, { '$set': {
         'last_entry': 0,
         'next_entry': 0
     }})

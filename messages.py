@@ -144,6 +144,8 @@ add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficien
 
 part_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +part <name>'
 
+set_events_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +events <channel> <on/off>'
+
 set_cooldown_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +cd <channel> <global/user> <cooldown>'
 
 tag_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>'

@@ -198,7 +198,7 @@ def dungeonstats(channel):
         loseword = ' Loss'
     else:
         loseword = ' Losses'
-    if dungeons is not 0:
+    if dungeons != 0:
         util.send_message(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, str(round((((wins)/(dungeons))*100), 3))), channel)
     else:
         util.send_message(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, '0'), channel)
@@ -230,7 +230,7 @@ def raidstats(channel):
         loseword = ' Loss'
     else:
         loseword = ' Losses'
-    if raids is not 0:
+    if raids != 0:
         util.send_message(messages.raid_general_stats(str(raids), raidword, str(wins), winword, str(losses), loseword, str(round((((wins)/(raids))*100), 3))), channel)
     else:
         util.send_message(messages.raid_general_stats(str(raids), raidword, str(wins), winword, str(losses), loseword, '0'), channel)

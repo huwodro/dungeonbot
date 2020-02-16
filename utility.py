@@ -223,7 +223,8 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
                 'last_message_time': time.time(),
                 'global_cooldown': global_cooldown,
                 'user_cooldown': user_cooldown,
-                'message_queued': 0
+                'message_queued': 0,
+                'raid_events': 1
             }}, upsert=True)
             db(opt.TAGS).update_one(user, {'$set': { 'moderator': 1 } }, upsert=True)
             sock.send(('JOIN #' + channel + '\r\n').encode('utf-8'))

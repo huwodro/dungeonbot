@@ -350,7 +350,7 @@ while True:
                             try:
                                 util.set_events(params[1], params[2], channel)
                             except IndexError:
-                                util.queue_message_to_one(messages.set_events_error, channel)
+                                util.queue_message_to_one(messages.set_events_error_admin, channel)
 
                         elif admin.get('moderator') == 1:
                             try:
@@ -359,7 +359,7 @@ while True:
                                 elif params[1] == 'on' or params[1] == 'off':
                                     util.set_events(display_name.casefold(), params[1], channel)
                             except IndexError:
-                                util.queue_message_to_one(messages.set_events_error, channel)
+                                util.queue_message_to_one(messages.set_events_error_mod, channel)
 
                 if params[0] == 'cd' or params[0] == 'cooldown':
                     admin = db(opt.TAGS).find_one_by_id(user)

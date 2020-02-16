@@ -138,13 +138,18 @@ def already_tag_message(user, tag):
 def error_message(error):
     return emoji.emojize(':x: ', use_aliases=True) + str(error)
 
+def set_event_message(mode, channel):
+    return 'Raid Events ' + mode + ' in ' + channel + emoji.emojize(' :bell:', use_aliases=True)
+
 add_text_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +text <vgr/vbr/gr/br/fail> <message>)'
 
 add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +add <name> (optional: <global cooldown> <user cooldown>)'
 
 part_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +part <name>'
 
-set_events_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +events <channel> <on/off>'
+set_events_error_admin = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +events <channel> <on/off>'
+
+set_events_error_mod = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +events <on/off>'
 
 set_cooldown_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +cd <channel> <global/user> <cooldown>'
 

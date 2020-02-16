@@ -251,9 +251,15 @@ def list_channels(channel):
     queue_message_to_one(messages.list_channels(joined_channels), channel)
 
 def set_events(channel, mode, current_channel):
-    option_dict = {'off': 0, 'on': 1}
     try:
-        db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'raid_events': option_dict[mode] } } )
+        if mode == 'off' and db(opt.CHANNELS).find_one({'name': channel})['raid_events'] == 1:
+            queue_message_to_one(messages.set_event_message('disabled', channel), channel)
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'raid_events': 0 } } )
+
+        elif mode == 'on' and db(opt.CHANNELS).find_one({'name': channel})['raid_events'] == 0:
+            queue_message_to_one(messages.set_event_message('enabled', channel), channel)
+            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'raid_events': 1 } } )
+
     except Exception as e:
         queue_message_to_one(messages.error_message(e), current_channel)
 

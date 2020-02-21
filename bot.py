@@ -75,7 +75,7 @@ def raid_event():
                     util.queue_message_to_some(messages.raid_event_countdown(str(i)), channel_time_list)
                 time.sleep(message_interval)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_start': 0 } })
-            rand = random.randint(3600, 7200)
+            rand = random.randint(5400, 9000)
             db(opt.GENERAL).update_one(0, { '$set': { 'raid_time': time.time() + rand } })
             if len(raid_users) == 0:
                 if channel_list:
@@ -92,7 +92,7 @@ def raid_event():
             time.sleep(3)
             raid_success = random.randint(1, 1001)
             if raid_success <= success_rate:
-                experience_gain = int(raid_level**1.2 * 275 / len(raid_users))
+                experience_gain = int(raid_level**1.2 * 27.5 / len(raid_users))
                 if channel_list:
                     util.queue_message_to_some(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)), channel_list)
                 for user, channel in raid_users:
@@ -106,11 +106,11 @@ def raid_event():
                             'raid_wins': 1,
                             'raids': 1
                         }})
-                        if (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
-                            while (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
+                        if (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*10) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
+                            while (((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*10) - db(opt.USERS).find_one_by_id(user)['current_experience'] <= 0:
                                 db(opt.USERS).update_one(user, {'$inc': {
                                     'user_level': 1,
-                                    'current_experience': -(((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*100)
+                                    'current_experience': -(((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*10)
                                 }})
                             level_up_users.append(user)
                     level_up_names = util.get_display_name(0, level_up_users)

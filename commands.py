@@ -69,14 +69,14 @@ def enterdungeon(user_id, display_name, channel):
                 level_run = dungeon_level
                 success_rate = 65+((user_level-dungeon_level)*7)
                 success_rate = success_rate if success_rate <= 100 else 100
-                experience_gain = int(100*dungeon_level)*(1-((user_level-dungeon_level))*0.2)
+                experience_gain = int(60*dungeon_level)*(1-((user_level-dungeon_level))*0.2)
                 experience_gain = experience_gain if experience_gain >= 0 else 0
-                dungeon_timeout = 600
+                dungeon_timeout = 3600
             else:
                 level_run = user_level
                 success_rate = 65
-                experience_gain = int(100*user_level)
-                dungeon_timeout = 600
+                experience_gain = int(60*user_level)
+                dungeon_timeout = 3600
 
             if experience_gain == 0:
                 util.send_message(messages.dungeon_too_low_level(display_name, str(dungeon_level)), channel)
@@ -129,10 +129,10 @@ def enterdungeon(user_id, display_name, channel):
                     'total_wins': 1
                 }})
                 user_experience = user['current_experience'] + experience_gain
-                if (((user_level+1)**2)*100) - user_experience <= 0:
+                if (((user_level+1)**2)*10) - user_experience <= 0:
                     db(opt.USERS).update_one(user['_id'], {'$inc': {
                         'user_level': 1,
-                        'current_experience': -(((user['user_level']+1)**2)*100)
+                        'current_experience': -(((user['user_level']+1)**2)*10)
                     }})
                     level_up_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.user_level_up(display_name, str(user['user_level'] + 1)), channel))
                     level_up_thread.start()
@@ -261,19 +261,19 @@ def lvl(user, display_name, channel, message=None):
         registered = util.check_if_registered(user, channel)
         if registered:
             user = db(opt.USERS).find_one_by_id(user)
-            util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*100)), channel)
+            util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*10)), channel)
     else:
         target = util.get_user_id(message)
         if target:
             registered = util.check_if_registered(user, channel, target)
             if registered:
                 target = db(opt.USERS).find_one_by_id(target)
-                util.send_message(messages.user_level(util.get_display_name(target['_id']), str(target['user_level']), str(target['current_experience']), str((((target['user_level']) + 1)**2)*100)), channel)
+                util.send_message(messages.user_level(util.get_display_name(target['_id']), str(target['user_level']), str(target['current_experience']), str((((target['user_level']) + 1)**2)*10)), channel)
         else:
             registered = util.check_if_registered(user, channel)
             if registered:
                 user = db(opt.USERS).find_one_by_id(user)
-                util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*100)), channel)
+                util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*10)), channel)
 
 @user_command
 def winrate(user, display_name, channel, message=None):

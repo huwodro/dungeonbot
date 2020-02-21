@@ -1,7 +1,7 @@
 import random
 import time
 
-rand = random.randint(3600, 7200)
+rand = random.randint(5400, 9000)
 
 GENERAL = {
     'dungeon_level': 0,

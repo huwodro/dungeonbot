@@ -100,7 +100,7 @@ def queue_message_to_one(message, channel):
     time.sleep(1.25)
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
-    time.sleep(0.5)
+    time.sleep(1)
     db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
@@ -110,7 +110,7 @@ def queue_message_to_some(message, channels):
     time.sleep(1.25)
     msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channels)
     sock.send((msg).encode('utf-8'))
-    time.sleep(0.5)
+    time.sleep(1)
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
@@ -121,7 +121,7 @@ def queue_message_to_all(message):
     channel_list = db(opt.CHANNELS).find({'online': 0}).distinct('name')
     msg = 'PRIVMSG #' + 'PRIVMSG #'.join(('{0} :' + message + get_cooldown_bypass_symbol() + '\r\n').format(c) for c in channel_list)
     sock.send((msg).encode('utf-8'))
-    time.sleep(0.5)
+    time.sleep(1)
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
@@ -166,23 +166,6 @@ def check_if_registered(user_id, channel, req = None):
         else:
             send_message(messages.user_not_registered(get_display_name(user_id)), channel)
     return False
-
-def suggest(user, channel, message):
-    if message != '':
-        suggestions = db(opt.SUGGESTIONS).count_documents({})
-        if suggestions < 500:
-            try:
-                id = db(opt.SUGGESTIONS).find_one(sort=[('_id', -1)])['_id']
-            except:
-                id = 0
-            else:
-                id += 1
-            db(opt.SUGGESTIONS).update_one(id, {'$set': {
-                'user': user,
-                'suggestion': message
-            }}, upsert=True)
-            suggestion_thread = threading.Thread(target = queue_message_to_one, args=(messages.suggestion_message(user, str(id)), channel))
-            suggestion_thread.start()
 
 ### Admin Commands ###
 
@@ -306,7 +289,7 @@ def restart():
     os._exit(1)
 
 def tag_user(user, tag, channel):
-    tag_list = ['admin', 'moderator']
+    tag_list = ['admin', 'moderator', 'bot']
     user_id = get_user_id(user)
     if user:
         if tag.lower() in tag_list:

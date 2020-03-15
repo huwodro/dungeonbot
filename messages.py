@@ -141,6 +141,9 @@ def error_message(error):
 def set_event_message(mode, channel):
     return 'Raid Events ' + mode + ' in ' + channel + emoji.emojize(' :bell:', use_aliases=True)
 
+def user_bot_message(user):
+    return user + ' is tagged as a Bot ' + emoji.emojize(':robot_face:', use_aliases=True)
+
 add_text_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +text <vgr/vbr/gr/br/fail> <message>)'
 
 add_channel_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +add <name> (optional: <global cooldown> <user cooldown>)'

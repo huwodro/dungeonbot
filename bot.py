@@ -201,9 +201,13 @@ while True:
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'enterdungeon' or params[0] == 'ed':
-                            cmd.user_command.all['enterdungeon'](user, display_name, channel)
-                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
-                            db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+                            tags = db(opt.TAGS).find_one_by_id(user)
+                            if tags and tags.get('bot') == 1:
+                                continue
+                            else:
+                                cmd.user_command.all['enterdungeon'](user, display_name, channel)
+                                db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+                                db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
                             cmd.user_command.all['dungeonlvl'](channel)
@@ -258,101 +262,100 @@ while True:
                         cmd.user_command.all['register'](user, display_name, channel)
 
                     if params[0] == 'join':
-                        dungeon = db(opt.GENERAL).find_one_by_id(0)
-                        channel_raids = db(opt.CHANNELS).find_one({'name': channel})
-                        if dungeon['raid_start'] == 1 and channel_raids['raid_events'] == 1:
-                            if not [usr for usr in raid_users if user in usr]:
-                                raid_user = db(opt.USERS).find_one_by_id(user)
-                                if raid_user and raid_user.get('user_level'):
-                                    raid_users.append((channel, raid_user['_id']))
-                                else:
-                                    if time.time() > user_cmd_use_time + global_cooldown:
-                                        register_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.not_registered(display_name), channel))
-                                        register_thread.start()
-                                        db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+                        tags = db(opt.TAGS).find_one_by_id(user)
+                        if tags and tags.get('bot') == 1:
+                            continue
+                        else:
+                            dungeon = db(opt.GENERAL).find_one_by_id(0)
+                            channel_raids = db(opt.CHANNELS).find_one({'name': channel})
+                            if dungeon['raid_start'] == 1 and channel_raids['raid_events'] == 1:
+                                if not [usr for usr in raid_users if user in usr]:
+                                    raid_user = db(opt.USERS).find_one_by_id(user)
+                                    if raid_user and raid_user.get('user_level'):
+                                        raid_users.append((channel, raid_user['_id']))
+                                    else:
+                                        if time.time() > user_cmd_use_time + global_cooldown:
+                                            register_thread = threading.Thread(target = util.queue_message_to_one, args=(messages.not_registered(display_name), channel))
+                                            register_thread.start()
+                                            db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                 if params[0] == 'suggest':
-                    util.suggest(display_name, channel, message[len(params[0])+2:])
+                    cmd.user_command.all['suggest'](display_name, channel, message[len(params[0])+2:])
 
                 ### Admin Commands ###
 
-                if params[0] == 'text':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        modes = ['vgr', 'vbr', 'gr', 'br', 'fail']
-                        try:
-                            if params[1] in modes:
-                                util.dungeon_text(params[1], message[len(params[0])+len(params[1])+2:])
-                            else:
+                tags = db(opt.TAGS).find_one_by_id(user)
+                if tags:
+
+                    if params[0] == 'text':
+                        if tags.get('admin') == 1:
+                            modes = ['vgr', 'vbr', 'gr', 'br', 'fail']
+                            try:
+                                if params[1] in modes:
+                                    util.dungeon_text(params[1], message[len(params[0])+len(params[1])+2:])
+                                else:
+                                    util.queue_message_to_one(messages.add_text_error, channel)
+                            except IndexError:
                                 util.queue_message_to_one(messages.add_text_error, channel)
-                        except IndexError:
-                            util.queue_message_to_one(messages.add_text_error, channel)
 
-                if params[0] == 'cs':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        try:
-                            util.check_suggestion(user, channel, int(params[1]))
-                        except:
-                            suggestions = []
-                            for suggestion in db.raw[opt.SUGGESTIONS].find():
-                                suggestions.append(suggestion['_id'])
-                            if suggestions:
-                                util.whisper(messages.list_suggestions(suggestions), display_name)
-                            else:
-                                util.whisper(messages.no_suggestions, display_name)
+                    if params[0] == 'cs':
+                        if tags.get('admin') == 1:
+                            try:
+                                util.check_suggestion(user, channel, int(params[1]))
+                            except:
+                                suggestions = []
+                                for suggestion in db.raw[opt.SUGGESTIONS].find():
+                                    suggestions.append(suggestion['_id'])
+                                if suggestions:
+                                    util.whisper(messages.list_suggestions(suggestions), display_name)
+                                else:
+                                    util.whisper(messages.no_suggestions, display_name)
 
-                if params[0] == 'rs':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        try:
-                            util.remove_suggestion(user, channel, int(params[1]))
-                        except IndexError:
-                            util.whisper(messages.remove_suggestion_usage_error, display_name)
-                        except ValueError as e:
-                            util.whisper(messages.error_message(e), display_name)
+                    if params[0] == 'rs':
+                        if tags.get('admin') == 1:
+                            try:
+                                util.remove_suggestion(user, channel, int(params[1]))
+                            except IndexError:
+                                util.whisper(messages.remove_suggestion_usage_error, display_name)
+                            except ValueError as e:
+                                util.whisper(messages.error_message(e), display_name)
 
-                if params[0] == 'add':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        try:
-                            util.join_channel(channel, params[1], float(params[2]), float(params[3]))
-                        except IndexError:
-                            if len(params) == 3:
-                                util.join_channel(channel, params[1], float(params[2]), 0)
-                            elif len(params) == 2:
-                                util.join_channel(channel, params[1], 2.5, 0)
-                            else:
-                                util.queue_message_to_one(messages.add_channel_error, channel)
-                        except ValueError as e:
-                            util.queue_message_to_one(messages.error_message(e), channel)
+                    if params[0] == 'add':
+                        if tags.get('admin') == 1:
+                            try:
+                                util.join_channel(channel, params[1], float(params[2]), float(params[3]))
+                            except IndexError:
+                                if len(params) == 3:
+                                    util.join_channel(channel, params[1], float(params[2]), 0)
+                                elif len(params) == 2:
+                                    util.join_channel(channel, params[1], 2.5, 0)
+                                else:
+                                    util.queue_message_to_one(messages.add_channel_error, channel)
+                            except ValueError as e:
+                                util.queue_message_to_one(messages.error_message(e), channel)
 
-                if params[0] == 'part':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin:
-                        if admin.get('admin') == 1:
+                    if params[0] == 'part':
+                        if tags.get('admin') == 1:
                             try:
                                 util.part_channel(params[1])
                             except IndexError:
                                 util.queue_message_to_one(messages.part_channel_error, channel)
 
-                        elif admin.get('moderator') == 1:
+                        elif tags.get('moderator') == 1:
                             try:
                                 if params[1] == display_name.casefold():
                                     util.part_channel(params[1])
                             except IndexError:
                                 util.part_channel(display_name.casefold())
 
-                if params[0] == 'events':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin:
-                        if admin.get('admin') == 1:
+                    if params[0] == 'events':
+                        if tags.get('admin') == 1:
                             try:
                                 util.set_events(params[1], params[2], channel)
                             except IndexError:
                                 util.queue_message_to_one(messages.set_events_error_admin, channel)
 
-                        elif admin.get('moderator') == 1:
+                        elif tags.get('moderator') == 1:
                             try:
                                 if params[1] == display_name.casefold():
                                     util.set_events(params[1], params[2], channel)
@@ -361,45 +364,38 @@ while True:
                             except IndexError:
                                 util.queue_message_to_one(messages.set_events_error_mod, channel)
 
-                if params[0] == 'cd' or params[0] == 'cooldown':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        try:
-                            util.set_cooldown(params[1], params[2], float(params[3]), channel)
-                        except IndexError:
-                            util.queue_message_to_one(messages.set_cooldown_error, channel)
-                        except ValueError as e:
-                            util.queue_message_to_one(messages.error_message(e), channel)
+                    if params[0] == 'cd' or params[0] == 'cooldown':
+                        if tags.get('admin') == 1:
+                            try:
+                                util.set_cooldown(params[1], params[2], float(params[3]), channel)
+                            except IndexError:
+                                util.queue_message_to_one(messages.set_cooldown_error, channel)
+                            except ValueError as e:
+                                util.queue_message_to_one(messages.error_message(e), channel)
 
-                if params[0] == 'channels':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        util.list_channels(channel)
+                    if params[0] == 'channels':
+                        if tags.get('admin') == 1:
+                            util.list_channels(channel)
 
-                if params[0] == 'eval':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        util.run_eval(message[len(params[0])+2:], channel)
+                    if params[0] == 'eval':
+                        if tags.get('admin') == 1:
+                            util.run_eval(message[len(params[0])+2:], channel)
 
-                if params[0] == 'exec':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        util.run_exec(message[len(params[0])+2:], channel)
+                    if params[0] == 'exec':
+                        if tags.get('admin') == 1:
+                            util.run_exec(message[len(params[0])+2:], channel)
 
-                if params[0] == 'tag':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        try:
-                            util.tag_user(params[1], params[2], channel)
-                        except IndexError as e:
-                            util.queue_message_to_one(messages.tag_error, channel)
+                    if params[0] == 'tag':
+                        if tags.get('admin') == 1:
+                            try:
+                                util.tag_user(params[1], params[2], channel)
+                            except IndexError as e:
+                                util.queue_message_to_one(messages.tag_error, channel)
 
-                if params[0] == 'resetcd':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        util.reset_cooldown(channel)
+                    if params[0] == 'resetcd':
+                        if tags.get('admin') == 1:
+                            util.reset_cooldown(channel)
 
-                if params[0] == 'restart':
-                    admin = db(opt.TAGS).find_one_by_id(user)
-                    if admin and admin.get('admin') == 1:
-                        util.restart()
+                    if params[0] == 'restart':
+                        if tags.get('admin') == 1:
+                            util.restart()

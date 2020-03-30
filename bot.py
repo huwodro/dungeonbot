@@ -195,6 +195,8 @@ while True:
                     message_queued = db(opt.CHANNELS).find_one({'name': channel})['message_queued']
                     if time.time() > global_cmd_use_time + global_cooldown and time.time() > user_cmd_use_time + user_cooldown and message_queued == 0:
 
+                        db(opt.USERS).update_one(user, { '$set': { 'username': display_name } }, upsert=True)
+
                         if params[0] == 'commands' or params[0] == 'help' or params[0] == 'bot':
                             cmd.commands(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
@@ -205,61 +207,66 @@ while True:
                             if tags and tags.get('bot') == 1:
                                 continue
                             else:
-                                cmd.user_command.all['enterdungeon'](user, display_name, channel)
+                                cmd.enterdungeon(user, display_name, channel)
                                 db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                                 db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonlvl' or params[0] == 'dungeonlevel':
-                            cmd.user_command.all['dungeonlvl'](channel)
+                            cmd.dungeonlvl(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonmaster' or params[0] == 'dm':
-                            cmd.user_command.all['dungeonmaster'](channel)
+                            cmd.dungeonmaster(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'dungeonstats':
-                            cmd.user_command.all['dungeonstats'](channel)
+                            cmd.dungeonstats(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'raidstats':
-                            cmd.user_command.all['raidstats'](channel)
+                            cmd.raidstats(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'ping':
-                            cmd.user_command.all['ping'](channel)
+                            cmd.ping(channel)
+                            db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+                            db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
+
+                        if params[0] == 'leaderboard' or params[0] == 'lb':
+                            cmd.leaderboard(channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'xp' or params[0] == 'exp':
                             try:
-                                cmd.user_command.all['xp'](user, display_name, channel, params[1])
+                                cmd.xp(user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.user_command.all['xp'](user, display_name, channel)
+                                cmd.xp(user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'lvl' or params[0] == 'level':
                             try:
-                                cmd.user_command.all['lvl'](user, display_name, channel, params[1])
+                                cmd.lvl(user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.user_command.all['lvl'](user, display_name, channel)
+                                cmd.lvl(user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                         if params[0] == 'winrate' or params[0] == 'wr':
                             try:
-                                cmd.user_command.all['winrate'](user, display_name, channel, params[1])
+                                cmd.winrate(user, display_name, channel, params[1])
                             except IndexError:
-                                cmd.user_command.all['winrate'](user, display_name, channel)
+                                cmd.winrate(user, display_name, channel)
                             db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                     if params[0] == 'register':
-                        cmd.user_command.all['register'](user, display_name, channel)
+                        cmd.register(user, display_name, channel)
 
                     if params[0] == 'join':
                         tags = db(opt.TAGS).find_one_by_id(user)
@@ -280,7 +287,7 @@ while True:
                                             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
 
                 if params[0] == 'suggest':
-                    cmd.user_command.all['suggest'](display_name, channel, message[len(params[0])+2:])
+                    cmd.suggest(display_name, channel, message[len(params[0])+2:])
 
                 ### Admin Commands ###
 

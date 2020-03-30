@@ -14,26 +14,18 @@ import messages
 db = opt.MongoDatabase
 bot_start = time.time()
 
-def make_command_dict():
-        dict_of_commands = {}
-        def command_dict(func):
-            dict_of_commands[func.__name__] = func
-        command_dict.all = dict_of_commands
-        return command_dict
-
-user_command = make_command_dict()
-
 ### User Commands ###
 
 def commands(channel):
-    util.send_message(messages.commands(user_command.all.keys()), channel)
+    util.send_message(messages.commands, channel)
 
-@user_command
 def ping(channel):
     uptime = int(time.time() - bot_start)
     util.send_message(messages.ping(str(datetime.timedelta(seconds=uptime))), channel)
 
-@user_command
+def leaderboard(channel):
+    util.send_message(messages.leaderboard, channel)
+
 def register(user, display_name, channel):
     registered = db(opt.USERS).find_one_by_id(user)
     if not registered or not registered.get('user_level'):
@@ -55,7 +47,6 @@ def register(user, display_name, channel):
             db(opt.USERS).update_one(user, { '$set': { 'cmd_use_time': time.time() } }, upsert=True)
             util.send_message(messages.user_already_registered(display_name), channel)
 
-@user_command
 def enterdungeon(user_id, display_name, channel):
     user = db(opt.USERS).find_one_by_id(user_id)
     if user and user.get('user_level'):
@@ -151,12 +142,10 @@ def enterdungeon(user_id, display_name, channel):
     else:
         util.send_message(messages.not_registered(display_name), channel)
 
-@user_command
 def dungeonlvl(channel):
     dungeon = db(opt.GENERAL).find_one_by_id(0)
     util.send_message(messages.dungeon_level(str(dungeon['dungeon_level'])), channel)
 
-@user_command
 def dungeonmaster(channel):
     users_by_xp = db(opt.USERS).find(sort=[('total_experience', -1)])
     while True:
@@ -176,7 +165,6 @@ def dungeonmaster(channel):
     else:
         util.send_message(messages.dungeon_no_master, channel)
 
-@user_command
 def dungeonstats(channel):
     general = db(opt.GENERAL).find_one_by_id(0)
     try:
@@ -208,7 +196,6 @@ def dungeonstats(channel):
     else:
         util.send_message(messages.dungeon_general_stats(str(dungeons), dungeonword, str(wins), winword, str(losses), loseword, '0'), channel)
 
-@user_command
 def raidstats(channel):
     general = db(opt.GENERAL).find_one_by_id(0)
     try:
@@ -240,7 +227,6 @@ def raidstats(channel):
     else:
         util.send_message(messages.raid_general_stats(str(raids), raidword, str(wins), winword, str(losses), loseword, '0'), channel)
 
-@user_command
 def xp(user, display_name, channel, message=None):
     if not message:
         tags = db(opt.TAGS).find_one_by_id(user)
@@ -268,7 +254,6 @@ def xp(user, display_name, channel, message=None):
                     user = db(opt.USERS).find_one_by_id(user)
                     util.send_message(messages.user_experience(display_name, str(user['total_experience'])), channel)
 
-@user_command
 def lvl(user, display_name, channel, message=None):
     if not message:
         tags = db(opt.TAGS).find_one_by_id(user)
@@ -296,7 +281,6 @@ def lvl(user, display_name, channel, message=None):
                     user = db(opt.USERS).find_one_by_id(user)
                     util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*10)), channel)
 
-@user_command
 def winrate(user, display_name, channel, message=None):
     if not message:
         tags = db(opt.TAGS).find_one_by_id(user)
@@ -328,6 +312,7 @@ def winrate(user, display_name, channel, message=None):
         if tags and tags.get('bot') == 1:
             util.send_message(messages.user_bot_message(util.get_display_name(target)), channel)
         else:
+            same_user = None
             if user == target:
                 same_user = True
             if target:
@@ -372,7 +357,6 @@ def winrate(user, display_name, channel, message=None):
                             lose_word = ' Losses'
                         util.send_message(messages.user_stats(display_name, str(wins), win_word, str(losses), lose_word, str(round((((wins)/(dungeons))*100), 3))), channel)
 
-@user_command
 def suggest(user, channel, message):
     if message != '':
         suggestions = db(opt.SUGGESTIONS).count_documents({})

@@ -1,10 +1,11 @@
 import emoji
 
-def commands(command_list):
-    return emoji.emojize(':memo:', use_aliases=True) + 'Commands: ' + ' | '.join('+{0}'.format(c) for c in command_list)
+commands = emoji.emojize(':memo:', use_aliases=True) + 'For a list of commands, visit https://huwobot.me/commands'
+
+leaderboard = emoji.emojize(':trophy:', use_aliases=True) + 'Leaderboard available at https://huwobot.me/leaderboard'
 
 def ping(uptime):
-    return emoji.emojize(' :stopwatch:', use_aliases=True) + ' Dungeon Bot Uptime: ' + uptime + ' | For a list of commands, type +commands'
+    return emoji.emojize(' :stopwatch:', use_aliases=True) + ' Dungeon Bot Uptime: ' + uptime + ' | For more information, visit https://huwobot.me'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'

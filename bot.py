@@ -168,6 +168,10 @@ while True:
                     display_name.encode('ascii')
                 except UnicodeEncodeError:
                     display_name = re.search(':(.+?)!', resp)
+                    if display_name:
+                        display_name = display_name.group(1)
+                    else:
+                        continue
             else:
                 continue
 

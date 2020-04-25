@@ -92,7 +92,7 @@ def raid_event():
             time.sleep(3)
             raid_success = random.randint(1, 1001)
             if raid_success <= success_rate:
-                experience_gain = int(raid_level**1.2 * 27.5 / len(raid_users))
+                experience_gain = math.ceil(raid_level**1.2 * 27.5 / len(raid_users))
                 if channel_list:
                     util.queue_message_to_some(messages.raid_event_win(str(len(raid_users)), user_word, str(raid_level), str(experience_gain)), channel_list)
                 for user, channel in raid_users:
@@ -164,6 +164,10 @@ while True:
             display_name = re.search('display-name=(.+?);', resp)
             if display_name:
                 display_name = display_name.group(1)
+                try:
+                    display_name.encode('ascii')
+                except UnicodeEncodeError:
+                    display_name = re.search(':(.+?)!', resp)
             else:
                 continue
 

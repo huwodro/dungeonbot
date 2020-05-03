@@ -46,7 +46,7 @@ def connect(manual = False):
             os._exit(1) # Shuts down script if called from initialization
 
 def get_display_name(id, list = None):
-    headers = { 'Authorization': auth.bearer }
+    headers = { 'Authorization': auth.bearer, 'Client-ID': auth.clientID }
     if list:
         params = (('id', list),)
     else:
@@ -67,7 +67,7 @@ def get_display_name(id, list = None):
             return
 
 def get_user_id(user):
-    headers = { 'Authorization': auth.bearer }
+    headers = { 'Authorization': auth.bearer, 'Client-ID': auth.clientID }
     params = (('login', user),)
     response = requests.get('https://api.twitch.tv/helix/users', headers=headers, params=params).json()
     try:

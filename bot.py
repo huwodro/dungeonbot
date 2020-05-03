@@ -27,7 +27,7 @@ util.start()
 def live_check():
     while True:
         online_channels = {}
-        headers = { 'Authorization': auth.bearer }
+        headers = { 'Authorization': auth.bearer, 'Client-ID': auth.clientID }
         params = []
         for channel in db.raw[opt.CHANNELS].find():
             tuple = ('user_id', channel['_id'])

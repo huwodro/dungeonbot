@@ -42,10 +42,7 @@ def live_check():
                 online_channels[online['user_id']] = online['user_name'].lower()
             for channel in db.raw[opt.CHANNELS].find():
                 if channel['_id'] in online_channels:
-                    db(opt.CHANNELS).update_one(channel['_id'], {'$set': {
-                        'name': online_channels[channel['_id']],
-                        'online': 1
-                    }}, upsert=True)
+                    db(opt.CHANNELS).update_one(channel['_id'], {'$set': { 'online': 1 } }, upsert=True)
                 else:
                     db(opt.CHANNELS).update_one(channel['_id'], { '$set': { 'online': 0 } }, upsert=True)
 

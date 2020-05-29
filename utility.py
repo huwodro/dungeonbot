@@ -34,7 +34,7 @@ def connect(manual = False):
         channels = ','.join('#{0}'.format(c) for c in channel_list)
         sock.send(('JOIN ' + channels + '\r\n').encode('utf-8'))
         t = time.localtime()
-        current_time = time.strftime("%H:%M:%S", t)
+        current_time = time.strftime("%d-%m-%Y %H:%M:%S", t)
         sys.stdout.write(current_time + ': SOCKET CONNECTED\n')
         sys.stdout.flush()
     except socket.error as e:
@@ -125,9 +125,9 @@ def queue_message_to_all(message):
     db(opt.CHANNELS).update_many({}, { '$set': { 'message_queued': 0 } } )
     queue_message_lock.release()
 
-def whisper(message, user):
-    msg = 'PRIVMSG #' + user + ' :.w ' + user + ' ' + message
-    sock.send((msg + '\r\n').encode('utf-8'))
+# def whisper(message, user):
+#     msg = 'PRIVMSG #' + user + ' :.w ' + user + ' ' + message
+#     sock.send((msg + '\r\n').encode('utf-8'))
 
 def git_info():
     repo = git.Repo(search_parent_directories=True)
@@ -151,22 +151,6 @@ def start():
         db(opt.GENERAL).update_one(0, { '$set': schemes.GENERAL }, upsert=True)
     git_info()
 
-def check_if_registered(user_id, channel, req = None):
-    same_user = req == user_id if req else True
-    if same_user:
-        user = db(opt.USERS).find_one_by_id(user_id)
-        if user and user.get('user_level'):
-            return True
-        else:
-            send_message(messages.not_registered(get_display_name(user_id)), channel)
-    else:
-        target = db(opt.USERS).find_one_by_id(req)
-        if target and target.get('user_level'):
-            return True
-        else:
-            send_message(messages.user_not_registered(get_display_name(user_id)), channel)
-    return False
-
 ### Admin Commands ###
 
 def dungeon_text(mode, message):
@@ -181,19 +165,6 @@ def dungeon_text(mode, message):
         'mode': mode,
         'text': message
     }}, upsert=True)
-
-def check_suggestion(user, channel, id):
-    suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)['suggestion']
-    suggestion_user = db(opt.SUGGESTIONS).find_one_by_id(id)['user']
-    whisper(messages.check_suggestion(suggestion, suggestion_user, str(id)), get_display_name(user))
-
-def remove_suggestion(user, channel, id):
-    suggestion = db(opt.SUGGESTIONS).find_one_by_id(id)
-    if suggestion:
-        db(opt.SUGGESTIONS).delete_one(id)
-        whisper(messages.suggestion_removed(str(id)), get_display_name(user))
-    else:
-        whisper(messages.remove_suggestion_error, get_display_name(user))
 
 def join_channel(current_channel, channel, global_cooldown, user_cooldown):
     try:
@@ -226,12 +197,6 @@ def part_channel(channel):
         db(opt.CHANNELS).delete_one(user['_id'])
         db(opt.TAGS).update_one(user['_id'], {'$unset': { 'moderator': '' } }, upsert=True)
         sock.send(('PART #' + channel + '\r\n').encode('utf-8'))
-
-def list_channels(channel):
-    joined_channels = []
-    for joined_channel in db.raw[opt.CHANNELS].find():
-        joined_channels.append(joined_channel['name'])
-    queue_message_to_one(messages.list_channels(joined_channels), channel)
 
 def set_events(channel, mode, current_channel):
     try:

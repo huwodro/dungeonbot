@@ -104,26 +104,13 @@ def user_not_registered(username):
 def suggestion_message(username, id):
     return username + ', thanks for your suggestion! ' + emoji.emojize(':memo:', use_aliases=True) + ' [ID ' + id + ']'
 
-def check_suggestion(suggestion, user, id):
-    return '\"' + suggestion + '\"' + ' - ' + user + ' [ID ' + id + ']'
-
-def suggestion_removed(id):
-    return 'Suggestion [ID ' + id + '] removed!'
-
-remove_suggestion_usage_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +rs <id>'
-
-remove_suggestion_error = emoji.emojize(':warning: ', use_aliases=True) + 'No such ID!'
-
-no_suggestions = 'There are no suggestions!' + emoji.emojize(':memo:', use_aliases=True)
-
 def no_channel_error(channel):
     return emoji.emojize(':x: ', use_aliases=True) + 'channel ' + channel + ' does not exist'
 
 def leaving_channel(name):
     return emoji.emojize(':rewind:', use_aliases=True) + ' Leaving ' + name + ' FeelsBadMan'
 
-def list_channels(list):
-    return '[' + ', '.join(list) + ']'
+channels = emoji.emojize(':tv:', use_aliases=True) + 'For a list of currently joined channels, visit https://huwobot.me/api/channels'
 
 def list_suggestions(list):
     return '[' + ', '.join(str(i) for i in list) + ']'

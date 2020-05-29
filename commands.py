@@ -26,6 +26,9 @@ def ping(channel):
 def leaderboard(channel):
     util.send_message(messages.leaderboard, channel)
 
+def channels(channel):
+    util.send_message(messages.channels, channel)
+
 def register(user, display_name, channel):
     registered = db(opt.USERS).find_one_by_id(user)
     if not registered or not registered.get('user_level'):
@@ -159,7 +162,7 @@ def dungeonmaster(channel):
         number_of_top_users = db(opt.USERS).count_documents( {'total_experience': highest_experience} )
         if number_of_top_users == 1:
             top_user = db(opt.USERS).find_one( {'total_experience': highest_experience} )
-            util.send_message(messages.dungeon_master(util.get_display_name(top_user['_id']), str(user_level), str(highest_experience)), channel)
+            util.send_message(messages.dungeon_master(top_user['username'], str(user_level), str(highest_experience)), channel)
         else:
             util.send_message(messages.dungeon_masters(str(number_of_top_users), str(user_level), str(highest_experience)), channel)
     else:
@@ -233,26 +236,21 @@ def xp(user, display_name, channel, message=None):
         if tags and tags.get('bot') == 1:
             util.send_message(messages.user_bot_message(display_name), channel)
         else:
-            registered = util.check_if_registered(user, channel)
-            if registered:
-                user = db(opt.USERS).find_one_by_id(user)
+            user = db(opt.USERS).find_one_by_id(user)
+            if user and user.get('user_level'):
                 util.send_message(messages.user_experience(display_name, str(user['total_experience'])), channel)
-    else:
-        target = util.get_user_id(message)
-        tags = db(opt.TAGS).find_one_by_id(target)
-        if tags and tags.get('bot') == 1:
-            util.send_message(messages.user_bot_message(util.get_display_name(target)), channel)
-        else:
-            if target:
-                registered = util.check_if_registered(user, channel, target)
-                if registered:
-                    target = db(opt.USERS).find_one_by_id(target)
-                    util.send_message(messages.user_experience(util.get_display_name(target['_id']), str(target['total_experience'])), channel)
             else:
-                registered = util.check_if_registered(user, channel)
-                if registered:
-                    user = db(opt.USERS).find_one_by_id(user)
-                    util.send_message(messages.user_experience(display_name, str(user['total_experience'])), channel)
+                util.send_message(messages.not_registered(display_name), channel)
+    else:
+        target = db(opt.USERS).find_one({'username': re.compile('^' + re.escape(message) + '$', re.IGNORECASE)})
+        if target and target.get('user_level'):
+            tags = db(opt.TAGS).find_one_by_id(target['_id'])
+            if tags and tags.get('bot') == 1:
+                util.send_message(messages.user_bot_message(target['username']), channel)
+            else:
+                util.send_message(messages.user_experience(target['username'], str(target['total_experience'])), channel)
+        else:
+            util.send_message(messages.user_not_registered(display_name), channel)
 
 def lvl(user, display_name, channel, message=None):
     if not message:
@@ -260,26 +258,21 @@ def lvl(user, display_name, channel, message=None):
         if tags and tags.get('bot') == 1:
             util.send_message(messages.user_bot_message(display_name), channel)
         else:
-            registered = util.check_if_registered(user, channel)
-            if registered:
-                user = db(opt.USERS).find_one_by_id(user)
+            user = db(opt.USERS).find_one_by_id(user)
+            if user and user.get('user_level'):
                 util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*10)), channel)
-    else:
-        target = util.get_user_id(message)
-        tags = db(opt.TAGS).find_one_by_id(target)
-        if tags and tags.get('bot') == 1:
-            util.send_message(messages.user_bot_message(util.get_display_name(target)), channel)
-        else:
-            if target:
-                registered = util.check_if_registered(user, channel, target)
-                if registered:
-                    target = db(opt.USERS).find_one_by_id(target)
-                    util.send_message(messages.user_level(util.get_display_name(target['_id']), str(target['user_level']), str(target['current_experience']), str((((target['user_level']) + 1)**2)*10)), channel)
             else:
-                registered = util.check_if_registered(user, channel)
-                if registered:
-                    user = db(opt.USERS).find_one_by_id(user)
-                    util.send_message(messages.user_level(display_name, str(user['user_level']), str(user['current_experience']), str((((user['user_level']) + 1)**2)*10)), channel)
+                util.send_message(messages.not_registered(display_name), channel)
+    else:
+        target = db(opt.USERS).find_one({'username': re.compile('^' + re.escape(message) + '$', re.IGNORECASE)})
+        if target and target.get('user_level'):
+            tags = db(opt.TAGS).find_one_by_id(target['_id'])
+            if tags and tags.get('bot') == 1:
+                util.send_message(messages.user_bot_message(target['username']), channel)
+            else:
+                util.send_message(messages.user_level(target['username'], str(target['user_level']), str(target['current_experience']), str((((target['user_level']) + 1)**2)*10)), channel)
+        else:
+            util.send_message(messages.user_not_registered(display_name), channel)
 
 def winrate(user, display_name, channel, message=None):
     if not message:
@@ -287,9 +280,8 @@ def winrate(user, display_name, channel, message=None):
         if tags and tags.get('bot') == 1:
             util.send_message(messages.user_bot_message(display_name), channel)
         else:
-            registered = util.check_if_registered(user, channel)
-            if registered:
-                user = db(opt.USERS).find_one_by_id(user)
+            user = db(opt.USERS).find_one_by_id(user)
+            if user and user.get('user_level'):
                 if user['dungeons'] == 0:
                     util.send_message(messages.no_entered_dungeons(display_name), channel)
                 else:
@@ -306,56 +298,38 @@ def winrate(user, display_name, channel, message=None):
                     else:
                         lose_word = ' Losses'
                     util.send_message(messages.user_stats(display_name, str(wins), win_word, str(losses), lose_word, str(round((((wins)/(dungeons))*100), 3))), channel)
-    else:
-        target = util.get_user_id(message)
-        tags = db(opt.TAGS).find_one_by_id(target)
-        if tags and tags.get('bot') == 1:
-            util.send_message(messages.user_bot_message(util.get_display_name(target)), channel)
-        else:
-            same_user = None
-            if user == target:
-                same_user = True
-            if target:
-                registered = util.check_if_registered(user, channel, target)
-                if registered:
-                    target = db(opt.USERS).find_one_by_id(target)
-                    if target['dungeons'] == 0:
-                        if same_user:
-                            util.send_message(messages.no_entered_dungeons(display_name), channel)
-                        else:
-                            util.send_message(messages.user_no_entered_dungeons(display_name), channel)
-                    else:
-                        dungeons = target['dungeons']
-                        wins = target['dungeon_wins']
-                        losses = target['dungeon_losses']
-                        if wins == 1:
-                            win_word = ' Win'
-                        else:
-                            win_word = ' Wins'
-                        if losses == 1:
-                            lose_word = ' Loss'
-                        else:
-                            lose_word = ' Losses'
-                        util.send_message(messages.user_stats(util.get_display_name(target['_id']), str(wins), win_word, str(losses), lose_word, str(round((((wins)/(dungeons))*100), 3))), channel)
             else:
-                registered = util.check_if_registered(user, channel)
-                if registered:
-                    user = db(opt.USERS).find_one_by_id(user)
-                    if user['dungeons'] == 0:
+                util.send_message(messages.not_registered(display_name), channel)
+    else:
+        target = db(opt.USERS).find_one({'username': re.compile('^' + re.escape(message) + '$', re.IGNORECASE)})
+        if target and target.get('user_level'):
+            tags = db(opt.TAGS).find_one_by_id(target)
+            if tags and tags.get('bot') == 1:
+                util.send_message(messages.user_bot_message(target['username']), channel)
+            else:
+                same_user = None
+                if user == target['_id']:
+                    same_user = True
+                if target['dungeons'] == 0:
+                    if same_user:
                         util.send_message(messages.no_entered_dungeons(display_name), channel)
                     else:
-                        dungeons = user['dungeons']
-                        wins = user['dungeon_wins']
-                        losses = user['dungeon_losses']
-                        if wins == 1:
-                            win_word = ' Win'
-                        else:
-                            win_word = ' Wins'
-                        if losses == 1:
-                            lose_word = ' Loss'
-                        else:
-                            lose_word = ' Losses'
-                        util.send_message(messages.user_stats(display_name, str(wins), win_word, str(losses), lose_word, str(round((((wins)/(dungeons))*100), 3))), channel)
+                        util.send_message(messages.user_no_entered_dungeons(display_name), channel)
+                else:
+                    dungeons = target['dungeons']
+                    wins = target['dungeon_wins']
+                    losses = target['dungeon_losses']
+                    if wins == 1:
+                        win_word = ' Win'
+                    else:
+                        win_word = ' Wins'
+                    if losses == 1:
+                        lose_word = ' Loss'
+                    else:
+                        lose_word = ' Losses'
+                    util.send_message(messages.user_stats(target['username'], str(wins), win_word, str(losses), lose_word, str(round((((wins)/(dungeons))*100), 3))), channel)
+        else:
+            util.send_message(messages.user_not_registered(display_name), channel)
 
 def suggest(user, channel, message):
     if message != '':

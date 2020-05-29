@@ -30,8 +30,8 @@ USER = {
 CHANNELS = {
     'online': 1,
     'cmd_use_time': time.time(),
-    'last_message_time': time.time(),
     'global_cooldown': 2.5,
     'user_cooldown': 0,
-    'message_queued': 0
+    'message_queued': 0,
+    'raid_events': 1
 }

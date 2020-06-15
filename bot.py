@@ -184,6 +184,20 @@ while True:
                             else:
                                 continue
 
+                            display_name = name_regex.search(chat_message)
+                            if display_name:
+                                display_name = display_name.group(1)
+                                try:
+                                    display_name.encode('ascii')
+                                except UnicodeEncodeError:
+                                    display_name = err_name_regex.search(chat_message)
+                                    if display_name:
+                                        display_name = display_name.group(1)
+                                    else:
+                                        continue
+                            else:
+                                continue
+
                             try:
                                 user_cmd_use_time = db(opt.USERS).find_one_by_id(user)['cmd_use_time']
                             except:
@@ -193,20 +207,6 @@ while True:
                             global_cooldown = db(opt.CHANNELS).find_one({'name': channel})['global_cooldown']
                             message_queued = db(opt.CHANNELS).find_one({'name': channel})['message_queued']
                             if time.time() > global_cmd_use_time + global_cooldown and time.time() > user_cmd_use_time + user_cooldown and message_queued == 0:
-
-                                display_name = name_regex.search(chat_message)
-                                if display_name:
-                                    display_name = display_name.group(1)
-                                    try:
-                                        display_name.encode('ascii')
-                                    except UnicodeEncodeError:
-                                        display_name = err_name_regex.search(chat_message)
-                                        if display_name:
-                                            display_name = display_name.group(1)
-                                        else:
-                                            continue
-                                else:
-                                    continue
 
                                 db(opt.USERS).update_one(user, { '$set': { 'username': display_name } }, upsert=True)
 

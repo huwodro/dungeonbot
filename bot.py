@@ -26,7 +26,7 @@ message_regex = re.compile('MSG[^:]*:(.*)')
 channel_regex = re.compile('MSG #(.+?) ')
 user_regex = re.compile('user-id=(.+?);')
 name_regex = re.compile('name=(.+?);')
-err_name_regex = re.compile(':(.+?)!')
+err_name_regex = re.compile(' :(.+?)!')
 
 util.start()
 

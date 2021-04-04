@@ -1,11 +1,11 @@
 import emoji
 
-commands = emoji.emojize(':memo:', use_aliases=True) + 'For a list of commands, visit https://huwobot.me/commands'
+commands = emoji.emojize(':memo:', use_aliases=True) + 'For a list of commands, visit https://huwobot.com/commands'
 
-leaderboard = emoji.emojize(':trophy:', use_aliases=True) + 'Leaderboard available at https://huwobot.me/leaderboard'
+leaderboard = emoji.emojize(':trophy:', use_aliases=True) + 'Leaderboard available at https://huwobot.com/leaderboard'
 
 def ping(uptime):
-    return emoji.emojize(' :stopwatch:', use_aliases=True) + ' Dungeon Bot Uptime: ' + uptime + ' | For more information, visit https://huwobot.me'
+    return emoji.emojize(' :stopwatch:', use_aliases=True) + ' Dungeon Bot Uptime: ' + uptime + ' | For more information, visit https://huwobot.com'
 
 def startup_message(branch, sha):
     return emoji.emojize(':arrow_right:', use_aliases=True) + ' Dungeon Bot (' + branch + ', ' + sha[0:7] + ')'
@@ -110,7 +110,7 @@ def no_channel_error(channel):
 def leaving_channel(name):
     return emoji.emojize(':rewind:', use_aliases=True) + ' Leaving ' + name + ' FeelsBadMan'
 
-channels = emoji.emojize(':tv:', use_aliases=True) + 'For a list of currently joined channels, visit https://huwobot.me/api/channels'
+channels = emoji.emojize(':tv:', use_aliases=True) + 'For a list of currently joined channels, visit https://huwobot.com/api/channels'
 
 def list_suggestions(list):
     return '[' + ', '.join(str(i) for i in list) + ']'

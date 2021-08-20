@@ -276,7 +276,7 @@ def check_banphrase(message, channel_name):
 
     banphrase_api =  db(opt.CHANNELS).find_one({'name': channel_name})['banphrase_api']
 
-    if len(banphrase_api) == 0:
+    if not banphrase_api:
         return False
 
     try:

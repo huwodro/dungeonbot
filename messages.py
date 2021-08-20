@@ -147,3 +147,9 @@ set_cooldown_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficie
 tag_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parameters - usage: +tag <user> <role>'
 
 restart_message = emoji.emojize(':arrows_counterclockwise:', use_aliases=True) + ' Restarting...'
+
+banphrased_name = '[Banphrased Name]'
+
+banphrased = '[Banphrased]'
+
+banphrase_api_offline = '[Banphrase API ' + emoji.emojize(':electric_plug:', use_aliases=True) + ']'

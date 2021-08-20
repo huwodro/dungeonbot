@@ -114,7 +114,7 @@ def raid_event():
                                     'current_experience': -(((db(opt.USERS).find_one_by_id(user)['user_level']+1)**2)*10)
                                 }})
                             level_up_users.append(user)
-                    level_up_names = util.get_display_name(0, level_up_users)
+                    level_up_names = util.sanitize_display_name(channel[0], 0, util.get_display_name(0, level_up_users))
                     if level_up_names:
                         i = 1
                         for user in level_up_names[::5]:

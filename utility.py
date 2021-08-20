@@ -303,7 +303,7 @@ def sanitize_display_name(channel_name, display_name, display_names = None):
 
 def sanitize_message(message, channel):
     banphrase_api_check = check_banphrase(message, channel)
-    if banphrase_api_check['banned']:
+    if banphrase_api_check and banphrase_api_check['banned']:
         phrase = banphrase_api_check['banphrase_data']['phrase']
         if banphrase_api_check['banphrase_data']['case_sensitive']:
             message = message.replace(phrase)

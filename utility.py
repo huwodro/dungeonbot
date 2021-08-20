@@ -283,20 +283,14 @@ def check_banphrase(message, channel_name):
     response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params).json()
     return response
 
-def sanitize_display_name(channel_name, display_name, display_names = None):
-    if display_name:
+def sanitize_display_names(channel_name, display_names):
+    display_name_list = []
+    for display_name in display_names:
         try:
-            return messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name
+            display_name_list.append(messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name)
         except:
-            return messages.banphrase_name_api_offline
-    elif display_names:
-        display_name_list = []
-        for display_name in display_names:
-            try:
-                display_name_list.append(messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name)
-            except:
-                display_name_list.append(messages.banphrase_name_api_offline)
-        return display_name_list
+            display_name_list.append(messages.banphrase_name_api_offline)
+    return display_name_list
 
 def sanitize_message(message, channel):
     try:

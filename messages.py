@@ -148,8 +148,10 @@ tag_error = emoji.emojize(':warning: ', use_aliases=True) + 'Insufficient parame
 
 restart_message = emoji.emojize(':arrows_counterclockwise:', use_aliases=True) + ' Restarting...'
 
-banphrased_name = '[Banphrased Name]'
-
 banphrased = '[Banphrased]'
 
-banphrase_api_offline = '[Banphrase API ' + emoji.emojize(':electric_plug:', use_aliases=True) + ']'
+banphrase_api_offline = 'Banphrase API did not send a response back.'
+
+banphrased_name = '[Banphrased Name]'
+
+banphrase_name_api_offline = '[Banphrase API ' + emoji.emojize(':electric_plug:', use_aliases=True) + ']'

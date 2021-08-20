@@ -279,34 +279,34 @@ def check_banphrase(message, channel_name):
     if not banphrase_api:
         return False
 
-    try:
-        time.sleep(random.uniform(0.1, 1))
-        response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params).json()
-        return response
-    except:
-        raise Exception()
+    time.sleep(random.uniform(0.1, 1))
+    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params).json()
+    return response
 
 def sanitize_display_name(channel_name, display_name, display_names = None):
     if display_name != 0:
         try:
             return messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name
         except:
-            return messages.banphrase_api_offline
+            return messages.banphrase_name_api_offline
     elif display_names:
         display_name_list = []
         for display_name in display_names:
             try:
                 display_name_list.append(messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name)
             except:
-                display_name_list.append(messages.banphrase_api_offline)
+                display_name_list.append(messages.banphrase_name_api_offline)
         return display_name_list
 
 def sanitize_message(message, channel):
-    banphrase_api_check = check_banphrase(message, channel)
-    if banphrase_api_check and banphrase_api_check['banned']:
-        phrase = banphrase_api_check['banphrase_data']['phrase']
-        if banphrase_api_check['banphrase_data']['case_sensitive']:
-            message = message.replace(phrase)
-        else:
-            message = message.lower().replace(phrase.lower(), messages.banphrased)
-    return message
+    try:
+        banphrase_api_check = check_banphrase(message, channel)
+        if banphrase_api_check and banphrase_api_check['banned']:
+            phrase = banphrase_api_check['banphrase_data']['phrase']
+            if banphrase_api_check['banphrase_data']['case_sensitive']:
+                message = message.replace(phrase)
+            else:
+                message = re.sub(re.escape(phrase), messages.banphrased, message, flags=re.IGNORECASE)
+        return message
+    except:
+        return messages.banphrase_api_offline

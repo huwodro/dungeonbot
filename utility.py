@@ -284,7 +284,7 @@ def check_banphrase(message, channel_name):
     return response
 
 def sanitize_display_name(channel_name, display_name, display_names = None):
-    if display_name != 0:
+    if display_name:
         try:
             return messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name
         except:

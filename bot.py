@@ -118,7 +118,7 @@ def raid_event():
                     if level_up_names:
                         i = 1
                         for user in level_up_names[::5]:
-                            util.queue_message_to_one(messages.users_level_up(level_up_names[level_up_names.index(user):5*i]), channel[0])
+                            util.queue_message_to_one(messages.users_level_up(level_up_names[level_up_names.index(user):5*i]), channel[0], True)
                             i += 1
                 db(opt.GENERAL).update_one(0, {'$inc': {
                     'total_experience': experience_gain * len(raid_users),

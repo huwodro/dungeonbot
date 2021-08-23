@@ -95,11 +95,16 @@ def send_message(message, channel):
 
 queue_message_lock = threading.Lock()
 
-def queue_message_to_one(message, channel):
+def queue_message_to_one(message, channel, is_sanitized=False):
     queue_message_lock.acquire()
     db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
-    message = sanitize_message(message, channel)
+
+    # We don't need to do another API call if a message is already sanitized.
+    # Currently only set by raid's users' level up messages.
+    if not is_sanitized:
+        message = sanitize_message(message, channel)
+
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
     time.sleep(1)

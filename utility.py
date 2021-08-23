@@ -95,11 +95,16 @@ def send_message(message, channel):
 
 queue_message_lock = threading.Lock()
 
-def queue_message_to_one(message, channel):
+def queue_message_to_one(message, channel, is_sanitized=False):
     queue_message_lock.acquire()
     db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
-    message = sanitize_message(message, channel)
+
+    # We don't need to do another API call if a message is already sanitized.
+    # Currently only set by raid's users' level up messages.
+    if not is_sanitized:
+        message = sanitize_message(message, channel)
+
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
     time.sleep(1)
@@ -280,15 +285,18 @@ def check_banphrase(message, channel_name):
         return False
 
     time.sleep(random.uniform(0.1, 1))
-    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params).json()
+    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params)
+    response.raise_for_status()
+    response = response.json()
     return response
 
 def sanitize_display_names(channel_name, display_names):
     display_name_list = []
     for display_name in display_names:
         try:
-            display_name_list.append(messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name)
-        except:
+            banphrase_api_check = check_banphrase(display_name, channel_name)
+            display_name_list.append(messages.banphrased_name if banphrase_api_check and banphrase_api_check['banned'] else display_name)
+        except requests.exceptions.RequestException:
             display_name_list.append(messages.banphrase_name_api_offline)
     return display_name_list
 
@@ -302,5 +310,5 @@ def sanitize_message(message, channel):
             else:
                 message = re.sub(re.escape(phrase), messages.banphrased, message, flags=re.IGNORECASE)
         return message
-    except:
+    except requests.exceptions.RequestException:
         return messages.banphrase_api_offline

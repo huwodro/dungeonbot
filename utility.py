@@ -89,6 +89,7 @@ def get_cooldown_bypass_symbol():
         return ' \U000e0000'
 
 def send_message(message, channel):
+    message = sanitize_message(message, channel)
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
 
@@ -98,6 +99,7 @@ def queue_message_to_one(message, channel):
     queue_message_lock.acquire()
     db(opt.CHANNELS).update_one_by_name(channel, { '$set': { 'message_queued': 1 } } )
     time.sleep(1.25)
+    message = sanitize_message(message, channel)
     msg = 'PRIVMSG #' + channel + ' :' + message + get_cooldown_bypass_symbol()
     sock.send((msg + '\r\n').encode('utf-8'))
     time.sleep(1)
@@ -178,7 +180,8 @@ def join_channel(current_channel, channel, global_cooldown, user_cooldown):
                 'global_cooldown': global_cooldown,
                 'user_cooldown': user_cooldown,
                 'message_queued': 0,
-                'raid_events': 1
+                'raid_events': 1,
+                'banphrase_api': ''
             }}, upsert=True)
             db(opt.TAGS).update_one(user, {'$set': { 'moderator': 1 } }, upsert=True)
             sock.send(('JOIN #' + channel + '\r\n').encode('utf-8'))
@@ -264,3 +267,40 @@ def tag_user(user, tag, channel):
                 queue_message_to_one(messages.tag_message(get_display_name(user_id), tag), channel)
             else:
                 queue_message_to_one(messages.already_tag_message(get_display_name(user_id), tag), channel)
+
+### Banphrase API ###
+
+def check_banphrase(message, channel_name):
+    headers = { 'User-Agent': 'huwobot (https://huwobot.com/)' }
+    params = (('message', message),)
+
+    banphrase_api =  db(opt.CHANNELS).find_one({'name': channel_name})['banphrase_api']
+
+    if not banphrase_api:
+        return False
+
+    time.sleep(random.uniform(0.1, 1))
+    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params).json()
+    return response
+
+def sanitize_display_names(channel_name, display_names):
+    display_name_list = []
+    for display_name in display_names:
+        try:
+            display_name_list.append(messages.banphrased_name if check_banphrase(display_name, channel_name)['banned'] else display_name)
+        except:
+            display_name_list.append(messages.banphrase_name_api_offline)
+    return display_name_list
+
+def sanitize_message(message, channel):
+    try:
+        banphrase_api_check = check_banphrase(message, channel)
+        if banphrase_api_check and banphrase_api_check['banned']:
+            phrase = banphrase_api_check['banphrase_data']['phrase']
+            if banphrase_api_check['banphrase_data']['case_sensitive']:
+                message = message.replace(phrase)
+            else:
+                message = re.sub(re.escape(phrase), messages.banphrased, message, flags=re.IGNORECASE)
+        return message
+    except:
+        return messages.banphrase_api_offline

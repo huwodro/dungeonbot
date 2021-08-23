@@ -33,5 +33,6 @@ CHANNELS = {
     'global_cooldown': 2.5,
     'user_cooldown': 0,
     'message_queued': 0,
-    'raid_events': 1
+    'raid_events': 1,
+    'banphrase_api': ''
 }

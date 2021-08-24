@@ -305,10 +305,8 @@ def sanitize_message(message, channel):
         banphrase_api_check = check_banphrase(message, channel)
         if banphrase_api_check and banphrase_api_check['banned']:
             phrase = banphrase_api_check['banphrase_data']['phrase']
-            if banphrase_api_check['banphrase_data']['case_sensitive']:
-                message = message.replace(phrase)
-            else:
-                message = re.sub(re.escape(phrase), messages.banphrased, message, flags=re.IGNORECASE)
+            banned_phrase = '\w*' + re.search(phrase, message, flags=re.IGNORECASE).group() + '\w*'
+            message = re.sub(banned_phrase, messages.banphrased, message, flags=re.IGNORECASE)
         return message
     except requests.exceptions.RequestException:
         return messages.banphrase_api_offline

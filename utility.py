@@ -285,7 +285,7 @@ def check_banphrase(message, channel_name):
         return False
 
     time.sleep(random.uniform(0.1, 1))
-    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, params=params)
+    response = requests.post('https://' + banphrase_api + '/api/v1/banphrases/test', headers=headers, json=params)
     response.raise_for_status()
     response = response.json()
     return response
